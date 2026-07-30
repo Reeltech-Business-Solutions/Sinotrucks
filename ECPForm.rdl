@@ -1,0 +1,161 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+      <rd:SecurityType>None</rd:SecurityType>
+    </DataSource>
+  </DataSources>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <Height>2in</Height>
+        <Style />
+      </Body>
+      <Width>6.5in</Width>
+      <Page>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <Code>Public Function BlankZero(ByVal Value As Decimal)
+    if Value = 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankPos(ByVal Value As Decimal)
+    if Value &gt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal)
+    if Value &gt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal)
+    if Value &lt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal)
+    if Value &lt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+</Code>
+  <Language>=User!Language</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Fields>
+        <Field Name="Doc__No_">
+          <DataField>Doc__No_</DataField>
+        </Field>
+        <Field Name="J_C_No_">
+          <DataField>J_C_No_</DataField>
+        </Field>
+        <Field Name="Date">
+          <DataField>Date</DataField>
+        </Field>
+        <Field Name="No_">
+          <DataField>No_</DataField>
+        </Field>
+        <Field Name="WHeel">
+          <DataField>WHeel</DataField>
+        </Field>
+        <Field Name="Brand">
+          <DataField>Brand</DataField>
+        </Field>
+        <Field Name="Image">
+          <DataField>Image</DataField>
+        </Field>
+        <Field Name="Description_Of_Part_Image_">
+          <DataField>Description_Of_Part_Image_</DataField>
+        </Field>
+        <Field Name="Driver_s_Name">
+          <DataField>Driver_s_Name</DataField>
+        </Field>
+        <Field Name="Staff_No">
+          <DataField>Staff_No</DataField>
+        </Field>
+        <Field Name="Odometer">
+          <DataField>Odometer</DataField>
+        </Field>
+        <Field Name="OdometerFormat">
+          <DataField>OdometerFormat</DataField>
+        </Field>
+        <Field Name="Work_Order_No">
+          <DataField>Work_Order_No</DataField>
+        </Field>
+        <Field Name="Contract">
+          <DataField>Contract</DataField>
+        </Field>
+        <Field Name="Comments">
+          <DataField>Comments</DataField>
+        </Field>
+        <Field Name="Pic_compInfo">
+          <DataField>Pic_compInfo</DataField>
+        </Field>
+        <Field Name="Add_compInfo">
+          <DataField>Add_compInfo</DataField>
+        </Field>
+        <Field Name="compInfoPhone">
+          <DataField>compInfoPhone</DataField>
+        </Field>
+        <Field Name="compInfoAdd">
+          <DataField>compInfoAdd</DataField>
+        </Field>
+        <Field Name="compInfo">
+          <DataField>compInfo</DataField>
+        </Field>
+        <Field Name="Line_No_">
+          <DataField>Line_No_</DataField>
+        </Field>
+        <Field Name="Replaceable__Parts">
+          <DataField>Replaceable__Parts</DataField>
+        </Field>
+        <Field Name="Document_No_">
+          <DataField>Document_No_</DataField>
+        </Field>
+        <Field Name="Description">
+          <DataField>Description</DataField>
+        </Field>
+        <Field Name="Fair">
+          <DataField>Fair</DataField>
+        </Field>
+        <Field Name="Good">
+          <DataField>Good</DataField>
+        </Field>
+        <Field Name="Measurement">
+          <DataField>Measurement</DataField>
+        </Field>
+        <Field Name="Poor">
+          <DataField>Poor</DataField>
+        </Field>
+        <Field Name="Remarks">
+          <DataField>Remarks</DataField>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+    </DataSet>
+  </DataSets>
+</Report>

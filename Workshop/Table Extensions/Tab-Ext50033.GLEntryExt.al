@@ -1,0 +1,49 @@
+tableextension 50033 "GLEntryExt " extends "G/L Entry"
+{
+    fields
+    {
+        field(50004; "Payment Request No."; Code[20])
+        {
+
+        }
+        field(70013; "Loan ID"; Code[20]) { }
+        field(70014; "Acct. No."; Code[20]) { }
+        field(50308; "OEM Code"; Code[20])
+        {
+            TableRelation = Vendor;
+        }
+        field(50309; "LPO"; Text[50])
+        {
+
+        }
+        field(50005; "Customer Name"; text[150])
+        {
+            FieldClass = FlowField;
+            CalcFormula = lookup(Customer.Name where("No." = field("Global Dimension 1 Code")));
+        }
+        field(50310; "Import file No."; Code[50])
+        {
+            DataClassification = ToBeClassified;
+        }
+
+    }
+
+}
+
+
+pageextension 50033 GLEntryExt extends "General Ledger Entries"
+{
+    layout
+    {
+        addafter("G/L Account No.")
+        {
+            field("Loan ID"; Rec."Loan ID") { ApplicationArea = All; }
+            field("Acct. No."; Rec."Acct. No.") { ApplicationArea = All; }
+            field("Job No.1"; Rec."Job No.") { ApplicationArea = All; }
+        }
+
+    }
+
+    // Add changes to page layout here
+
+}

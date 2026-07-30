@@ -1,0 +1,386 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+      <rd:SecurityType>None</rd:SecurityType>
+    </DataSource>
+  </DataSources>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <Height>2in</Height>
+        <Style />
+      </Body>
+      <Width>6.5in</Width>
+      <Page>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <Code>Public Function BlankZero(ByVal Value As Decimal)
+    if Value = 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankPos(ByVal Value As Decimal)
+    if Value &gt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal)
+    if Value &gt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal)
+    if Value &lt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal)
+    if Value &lt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+</Code>
+  <Language>=User!Language</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Fields>
+        <Field Name="BillingQty1">
+          <DataField>BillingQty1</DataField>
+        </Field>
+        <Field Name="BillingQty2">
+          <DataField>BillingQty2</DataField>
+        </Field>
+        <Field Name="BillingQty3">
+          <DataField>BillingQty3</DataField>
+        </Field>
+        <Field Name="BillingQty4">
+          <DataField>BillingQty4</DataField>
+        </Field>
+        <Field Name="BillingQty5">
+          <DataField>BillingQty5</DataField>
+        </Field>
+        <Field Name="BillingQty6">
+          <DataField>BillingQty6</DataField>
+        </Field>
+        <Field Name="BillingQty7">
+          <DataField>BillingQty7</DataField>
+        </Field>
+        <Field Name="frq1">
+          <DataField>frq1</DataField>
+        </Field>
+        <Field Name="frq2">
+          <DataField>frq2</DataField>
+        </Field>
+        <Field Name="frq3">
+          <DataField>frq3</DataField>
+        </Field>
+        <Field Name="frq4">
+          <DataField>frq4</DataField>
+        </Field>
+        <Field Name="frq5">
+          <DataField>frq5</DataField>
+        </Field>
+        <Field Name="frq6">
+          <DataField>frq6</DataField>
+        </Field>
+        <Field Name="frq7">
+          <DataField>frq7</DataField>
+        </Field>
+        <Field Name="MilageCon1">
+          <DataField>MilageCon1</DataField>
+        </Field>
+        <Field Name="MilageCon2">
+          <DataField>MilageCon2</DataField>
+        </Field>
+        <Field Name="MilageCon3">
+          <DataField>MilageCon3</DataField>
+        </Field>
+        <Field Name="MilageCon4">
+          <DataField>MilageCon4</DataField>
+        </Field>
+        <Field Name="MilageCon5">
+          <DataField>MilageCon5</DataField>
+        </Field>
+        <Field Name="MilageCon6">
+          <DataField>MilageCon6</DataField>
+        </Field>
+        <Field Name="BillingAmt1">
+          <DataField>BillingAmt1</DataField>
+        </Field>
+        <Field Name="BillingAmt2">
+          <DataField>BillingAmt2</DataField>
+        </Field>
+        <Field Name="BillingAmt3">
+          <DataField>BillingAmt3</DataField>
+        </Field>
+        <Field Name="BillingAmt4">
+          <DataField>BillingAmt4</DataField>
+        </Field>
+        <Field Name="BillingAmt5">
+          <DataField>BillingAmt5</DataField>
+        </Field>
+        <Field Name="BillingAmt6">
+          <DataField>BillingAmt6</DataField>
+        </Field>
+        <Field Name="BillingAmt7">
+          <DataField>BillingAmt7</DataField>
+        </Field>
+        <Field Name="FixedAssetNo1">
+          <DataField>FixedAssetNo1</DataField>
+        </Field>
+        <Field Name="FixedAssetNo2">
+          <DataField>FixedAssetNo2</DataField>
+        </Field>
+        <Field Name="FixedAssetNo3">
+          <DataField>FixedAssetNo3</DataField>
+        </Field>
+        <Field Name="FixedAssetNo4">
+          <DataField>FixedAssetNo4</DataField>
+        </Field>
+        <Field Name="FixedAssetNo5">
+          <DataField>FixedAssetNo5</DataField>
+        </Field>
+        <Field Name="FixedAssetNo6">
+          <DataField>FixedAssetNo6</DataField>
+        </Field>
+        <Field Name="FixedAssetNo7">
+          <DataField>FixedAssetNo7</DataField>
+        </Field>
+        <Field Name="Daysworked1">
+          <DataField>Daysworked1</DataField>
+        </Field>
+        <Field Name="Daysworked1Format">
+          <DataField>Daysworked1Format</DataField>
+        </Field>
+        <Field Name="Daysworked2">
+          <DataField>Daysworked2</DataField>
+        </Field>
+        <Field Name="Daysworked2Format">
+          <DataField>Daysworked2Format</DataField>
+        </Field>
+        <Field Name="Daysworked3">
+          <DataField>Daysworked3</DataField>
+        </Field>
+        <Field Name="Daysworked3Format">
+          <DataField>Daysworked3Format</DataField>
+        </Field>
+        <Field Name="Daysworked4">
+          <DataField>Daysworked4</DataField>
+        </Field>
+        <Field Name="Daysworked4Format">
+          <DataField>Daysworked4Format</DataField>
+        </Field>
+        <Field Name="Daysworked5">
+          <DataField>Daysworked5</DataField>
+        </Field>
+        <Field Name="Daysworked5Format">
+          <DataField>Daysworked5Format</DataField>
+        </Field>
+        <Field Name="Daysworked6">
+          <DataField>Daysworked6</DataField>
+        </Field>
+        <Field Name="Daysworked6Format">
+          <DataField>Daysworked6Format</DataField>
+        </Field>
+        <Field Name="Daysworked7">
+          <DataField>Daysworked7</DataField>
+        </Field>
+        <Field Name="Daysworked7Format">
+          <DataField>Daysworked7Format</DataField>
+        </Field>
+        <Field Name="nonworkingdays1">
+          <DataField>nonworkingdays1</DataField>
+        </Field>
+        <Field Name="nonworkingdays1Format">
+          <DataField>nonworkingdays1Format</DataField>
+        </Field>
+        <Field Name="nonworkingdays2">
+          <DataField>nonworkingdays2</DataField>
+        </Field>
+        <Field Name="nonworkingdays2Format">
+          <DataField>nonworkingdays2Format</DataField>
+        </Field>
+        <Field Name="nonworkingdays3">
+          <DataField>nonworkingdays3</DataField>
+        </Field>
+        <Field Name="nonworkingdays3Format">
+          <DataField>nonworkingdays3Format</DataField>
+        </Field>
+        <Field Name="nonworkingdays4">
+          <DataField>nonworkingdays4</DataField>
+        </Field>
+        <Field Name="nonworkingdays4Format">
+          <DataField>nonworkingdays4Format</DataField>
+        </Field>
+        <Field Name="nonworkingdays5">
+          <DataField>nonworkingdays5</DataField>
+        </Field>
+        <Field Name="nonworkingdays5Format">
+          <DataField>nonworkingdays5Format</DataField>
+        </Field>
+        <Field Name="nonworkingdays6">
+          <DataField>nonworkingdays6</DataField>
+        </Field>
+        <Field Name="nonworkingdays6Format">
+          <DataField>nonworkingdays6Format</DataField>
+        </Field>
+        <Field Name="nonworkingdays7">
+          <DataField>nonworkingdays7</DataField>
+        </Field>
+        <Field Name="nonworkingdays7Format">
+          <DataField>nonworkingdays7Format</DataField>
+        </Field>
+        <Field Name="GMIcharges1">
+          <DataField>GMIcharges1</DataField>
+        </Field>
+        <Field Name="GMIcharges1Format">
+          <DataField>GMIcharges1Format</DataField>
+        </Field>
+        <Field Name="GMIcharges2">
+          <DataField>GMIcharges2</DataField>
+        </Field>
+        <Field Name="GMIcharges2Format">
+          <DataField>GMIcharges2Format</DataField>
+        </Field>
+        <Field Name="GMIcharges3">
+          <DataField>GMIcharges3</DataField>
+        </Field>
+        <Field Name="GMIcharges3Format">
+          <DataField>GMIcharges3Format</DataField>
+        </Field>
+        <Field Name="GMIcharges4">
+          <DataField>GMIcharges4</DataField>
+        </Field>
+        <Field Name="GMIcharges4Format">
+          <DataField>GMIcharges4Format</DataField>
+        </Field>
+        <Field Name="GMIcharges5">
+          <DataField>GMIcharges5</DataField>
+        </Field>
+        <Field Name="GMIcharges5Format">
+          <DataField>GMIcharges5Format</DataField>
+        </Field>
+        <Field Name="GMIcharges6">
+          <DataField>GMIcharges6</DataField>
+        </Field>
+        <Field Name="GMIcharges6Format">
+          <DataField>GMIcharges6Format</DataField>
+        </Field>
+        <Field Name="GMIcharges7">
+          <DataField>GMIcharges7</DataField>
+        </Field>
+        <Field Name="GMIcharges7Format">
+          <DataField>GMIcharges7Format</DataField>
+        </Field>
+        <Field Name="GMIrate1">
+          <DataField>GMIrate1</DataField>
+        </Field>
+        <Field Name="GMIrate1Format">
+          <DataField>GMIrate1Format</DataField>
+        </Field>
+        <Field Name="GMIrate2">
+          <DataField>GMIrate2</DataField>
+        </Field>
+        <Field Name="GMIrate2Format">
+          <DataField>GMIrate2Format</DataField>
+        </Field>
+        <Field Name="GMIrate3">
+          <DataField>GMIrate3</DataField>
+        </Field>
+        <Field Name="GMIrate3Format">
+          <DataField>GMIrate3Format</DataField>
+        </Field>
+        <Field Name="GMIrate4">
+          <DataField>GMIrate4</DataField>
+        </Field>
+        <Field Name="GMIrate4Format">
+          <DataField>GMIrate4Format</DataField>
+        </Field>
+        <Field Name="GMIrate5">
+          <DataField>GMIrate5</DataField>
+        </Field>
+        <Field Name="GMIrate5Format">
+          <DataField>GMIrate5Format</DataField>
+        </Field>
+        <Field Name="GMIrate6">
+          <DataField>GMIrate6</DataField>
+        </Field>
+        <Field Name="GMIrate6Format">
+          <DataField>GMIrate6Format</DataField>
+        </Field>
+        <Field Name="GMIrate7">
+          <DataField>GMIrate7</DataField>
+        </Field>
+        <Field Name="GMIrate7Format">
+          <DataField>GMIrate7Format</DataField>
+        </Field>
+        <Field Name="Amountfx1">
+          <DataField>Amountfx1</DataField>
+        </Field>
+        <Field Name="Amountfx1Format">
+          <DataField>Amountfx1Format</DataField>
+        </Field>
+        <Field Name="Amountfx2">
+          <DataField>Amountfx2</DataField>
+        </Field>
+        <Field Name="Amountfx2Format">
+          <DataField>Amountfx2Format</DataField>
+        </Field>
+        <Field Name="Amountfx3">
+          <DataField>Amountfx3</DataField>
+        </Field>
+        <Field Name="Amountfx3Format">
+          <DataField>Amountfx3Format</DataField>
+        </Field>
+        <Field Name="Amountfx4">
+          <DataField>Amountfx4</DataField>
+        </Field>
+        <Field Name="Amountfx4Format">
+          <DataField>Amountfx4Format</DataField>
+        </Field>
+        <Field Name="Amountfx5">
+          <DataField>Amountfx5</DataField>
+        </Field>
+        <Field Name="Amountfx5Format">
+          <DataField>Amountfx5Format</DataField>
+        </Field>
+        <Field Name="Amountfx6">
+          <DataField>Amountfx6</DataField>
+        </Field>
+        <Field Name="Amountfx6Format">
+          <DataField>Amountfx6Format</DataField>
+        </Field>
+        <Field Name="Amountfx7">
+          <DataField>Amountfx7</DataField>
+        </Field>
+        <Field Name="Amountfx7Format">
+          <DataField>Amountfx7Format</DataField>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+    </DataSet>
+  </DataSets>
+</Report>

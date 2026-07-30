@@ -1,0 +1,170 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+      <rd:SecurityType>None</rd:SecurityType>
+    </DataSource>
+  </DataSources>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <Height>2in</Height>
+        <Style />
+      </Body>
+      <Width>6.5in</Width>
+      <Page>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <Code>Public Function BlankZero(ByVal Value As Decimal)
+    if Value = 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankPos(ByVal Value As Decimal)
+    if Value &gt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal)
+    if Value &gt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal)
+    if Value &lt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal)
+    if Value &lt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+</Code>
+  <Language>=User!Language</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Fields>
+        <Field Name="Date">
+          <DataField>Date</DataField>
+        </Field>
+        <Field Name="DriveSize">
+          <DataField>DriveSize</DataField>
+        </Field>
+        <Field Name="FleetName">
+          <DataField>FleetName</DataField>
+        </Field>
+        <Field Name="FreeRollingSize">
+          <DataField>FreeRollingSize</DataField>
+        </Field>
+        <Field Name="Hours">
+          <DataField>Hours</DataField>
+        </Field>
+        <Field Name="InspectionBy">
+          <DataField>InspectionBy</DataField>
+        </Field>
+        <Field Name="InspectionByName">
+          <DataField>InspectionByName</DataField>
+        </Field>
+        <Field Name="Kilometers">
+          <DataField>Kilometers</DataField>
+        </Field>
+        <Field Name="Miles">
+          <DataField>Miles</DataField>
+        </Field>
+        <Field Name="No">
+          <DataField>No</DataField>
+        </Field>
+        <Field Name="NoSeries">
+          <DataField>NoSeries</DataField>
+        </Field>
+        <Field Name="Odometer">
+          <DataField>Odometer</DataField>
+        </Field>
+        <Field Name="SpareSize">
+          <DataField>SpareSize</DataField>
+        </Field>
+        <Field Name="SteerSize">
+          <DataField>SteerSize</DataField>
+        </Field>
+        <Field Name="SystemCreatedAt">
+          <DataField>SystemCreatedAt</DataField>
+        </Field>
+        <Field Name="SystemCreatedBy">
+          <DataField>SystemCreatedBy</DataField>
+        </Field>
+        <Field Name="SystemId">
+          <DataField>SystemId</DataField>
+        </Field>
+        <Field Name="SystemModifiedAt">
+          <DataField>SystemModifiedAt</DataField>
+        </Field>
+        <Field Name="SystemModifiedBy">
+          <DataField>SystemModifiedBy</DataField>
+        </Field>
+        <Field Name="VIR">
+          <DataField>VIR</DataField>
+        </Field>
+        <Field Name="VehicleNumber">
+          <DataField>VehicleNumber</DataField>
+        </Field>
+        <Field Name="VehicleType">
+          <DataField>VehicleType</DataField>
+        </Field>
+        <Field Name="Ply_Rate">
+          <DataField>Ply_Rate</DataField>
+        </Field>
+        <Field Name="Ply_RateFormat">
+          <DataField>Ply_RateFormat</DataField>
+        </Field>
+        <Field Name="Product_Code_">
+          <DataField>Product_Code_</DataField>
+        </Field>
+        <Field Name="Rec_Air">
+          <DataField>Rec_Air</DataField>
+        </Field>
+        <Field Name="Air_Found">
+          <DataField>Air_Found</DataField>
+        </Field>
+        <Field Name="Tread_Depth">
+          <DataField>Tread_Depth</DataField>
+        </Field>
+        <Field Name="Line_No">
+          <DataField>Line_No</DataField>
+        </Field>
+        <Field Name="Document_No_">
+          <DataField>Document_No_</DataField>
+        </Field>
+        <Field Name="Tyre_Id">
+          <DataField>Tyre_Id</DataField>
+        </Field>
+        <Field Name="Position_Code">
+          <DataField>Position_Code</DataField>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+    </DataSet>
+  </DataSets>
+</Report>

@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+      <rd:SecurityType>None</rd:SecurityType>
+    </DataSource>
+  </DataSources>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <Height>2in</Height>
+        <Style />
+      </Body>
+      <Width>6.5in</Width>
+      <Page>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <Code>Public Function BlankZero(ByVal Value As Decimal)
+    if Value = 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankPos(ByVal Value As Decimal)
+    if Value &gt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal)
+    if Value &gt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal)
+    if Value &lt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal)
+    if Value &lt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+</Code>
+  <Language>=User!Language</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Fields>
+        <Field Name="EmployeeCode_prEmployeeTransactions">
+          <DataField>EmployeeCode_prEmployeeTransactions</DataField>
+        </Field>
+        <Field Name="EmpNAme">
+          <DataField>EmpNAme</DataField>
+        </Field>
+        <Field Name="EmpDept">
+          <DataField>EmpDept</DataField>
+        </Field>
+        <Field Name="Email">
+          <DataField>Email</DataField>
+        </Field>
+        <Field Name="SerialNumber">
+          <DataField>SerialNumber</DataField>
+        </Field>
+        <Field Name="PayrollPeriod_prEmployeeTransactions">
+          <DataField>PayrollPeriod_prEmployeeTransactions</DataField>
+        </Field>
+        <Field Name="PayrollPeriod_Month">
+          <DataField>PayrollPeriod_Month</DataField>
+        </Field>
+        <Field Name="OriginalAmount_prEmployeeTransactions">
+          <DataField>OriginalAmount_prEmployeeTransactions</DataField>
+        </Field>
+        <Field Name="OriginalAmount_prEmployeeTransactionsFormat">
+          <DataField>OriginalAmount_prEmployeeTransactionsFormat</DataField>
+        </Field>
+        <Field Name="Amount_prEmployeeTransactions">
+          <DataField>Amount_prEmployeeTransactions</DataField>
+        </Field>
+        <Field Name="Amount_prEmployeeTransactionsFormat">
+          <DataField>Amount_prEmployeeTransactionsFormat</DataField>
+        </Field>
+        <Field Name="StartDate_prEmployeeTransactions">
+          <DataField>StartDate_prEmployeeTransactions</DataField>
+        </Field>
+        <Field Name="TransactionName_prEmployeeTransactions">
+          <DataField>TransactionName_prEmployeeTransactions</DataField>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+    </DataSet>
+  </DataSets>
+</Report>

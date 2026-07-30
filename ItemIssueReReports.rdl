@@ -1,0 +1,176 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+      <rd:SecurityType>None</rd:SecurityType>
+    </DataSource>
+  </DataSources>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <Height>2in</Height>
+        <Style />
+      </Body>
+      <Width>6.5in</Width>
+      <Page>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <Code>Public Function BlankZero(ByVal Value As Decimal)
+    if Value = 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankPos(ByVal Value As Decimal)
+    if Value &gt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal)
+    if Value &gt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal)
+    if Value &lt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal)
+    if Value &lt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+</Code>
+  <Language>=User!Language</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Fields>
+        <Field Name="item_no">
+          <DataField>item_no</DataField>
+        </Field>
+        <Field Name="item_description">
+          <DataField>item_description</DataField>
+        </Field>
+        <Field Name="item_category">
+          <DataField>item_category</DataField>
+        </Field>
+        <Field Name="service_item">
+          <DataField>service_item</DataField>
+        </Field>
+        <Field Name="Job_No_">
+          <DataField>Job_No_</DataField>
+        </Field>
+        <Field Name="FA_No">
+          <DataField>FA_No</DataField>
+        </Field>
+        <Field Name="Truck_No">
+          <DataField>Truck_No</DataField>
+        </Field>
+        <Field Name="last_mileage">
+          <DataField>last_mileage</DataField>
+        </Field>
+        <Field Name="last_mileageFormat">
+          <DataField>last_mileageFormat</DataField>
+        </Field>
+        <Field Name="location">
+          <DataField>location</DataField>
+        </Field>
+        <Field Name="Document_No_">
+          <DataField>Document_No_</DataField>
+        </Field>
+        <Field Name="Unit_Cost">
+          <DataField>Unit_Cost</DataField>
+        </Field>
+        <Field Name="Unit_CostFormat">
+          <DataField>Unit_CostFormat</DataField>
+        </Field>
+        <Field Name="Posted_Unit_Cost">
+          <DataField>Posted_Unit_Cost</DataField>
+        </Field>
+        <Field Name="Posted_Unit_CostFormat">
+          <DataField>Posted_Unit_CostFormat</DataField>
+        </Field>
+        <Field Name="Posted_Amount">
+          <DataField>Posted_Amount</DataField>
+        </Field>
+        <Field Name="Posted_AmountFormat">
+          <DataField>Posted_AmountFormat</DataField>
+        </Field>
+        <Field Name="Line_Amount">
+          <DataField>Line_Amount</DataField>
+        </Field>
+        <Field Name="Line_AmountFormat">
+          <DataField>Line_AmountFormat</DataField>
+        </Field>
+        <Field Name="maintenance_type">
+          <DataField>maintenance_type</DataField>
+        </Field>
+        <Field Name="repair_location">
+          <DataField>repair_location</DataField>
+        </Field>
+        <Field Name="maker">
+          <DataField>maker</DataField>
+        </Field>
+        <Field Name="model">
+          <DataField>model</DataField>
+        </Field>
+        <Field Name="matReq">
+          <DataField>matReq</DataField>
+        </Field>
+        <Field Name="counter">
+          <DataField>counter</DataField>
+        </Field>
+        <Field Name="picture">
+          <DataField>picture</DataField>
+        </Field>
+        <Field Name="Flters">
+          <DataField>Flters</DataField>
+        </Field>
+        <Field Name="Posting_Date">
+          <DataField>Posting_Date</DataField>
+        </Field>
+        <Field Name="Quantity">
+          <DataField>Quantity</DataField>
+        </Field>
+        <Field Name="QuantityFormat">
+          <DataField>QuantityFormat</DataField>
+        </Field>
+        <Field Name="Posted_Quantity">
+          <DataField>Posted_Quantity</DataField>
+        </Field>
+        <Field Name="Posted_QuantityFormat">
+          <DataField>Posted_QuantityFormat</DataField>
+        </Field>
+        <Field Name="Quantity_variance">
+          <DataField>Quantity_variance</DataField>
+        </Field>
+        <Field Name="Quantity_varianceFormat">
+          <DataField>Quantity_varianceFormat</DataField>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+    </DataSet>
+  </DataSets>
+</Report>

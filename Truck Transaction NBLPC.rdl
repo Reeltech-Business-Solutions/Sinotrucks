@@ -1,0 +1,293 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+      <rd:SecurityType>None</rd:SecurityType>
+    </DataSource>
+  </DataSources>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <Height>2in</Height>
+        <Style />
+      </Body>
+      <Width>6.5in</Width>
+      <Page>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <Code>Public Function BlankZero(ByVal Value As Decimal)
+    if Value = 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankPos(ByVal Value As Decimal)
+    if Value &gt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal)
+    if Value &gt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal)
+    if Value &lt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal)
+    if Value &lt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+</Code>
+  <Language>=User!Language</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+  <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Fields>
+        <Field Name="ActualJourneyTime">
+          <DataField>ActualJourneyTime</DataField>
+        </Field>
+        <Field Name="Arrivaltimeatloadingpoint">
+          <DataField>Arrivaltimeatloadingpoint</DataField>
+        </Field>
+        <Field Name="ArrivalTimeatOffloadingPoint">
+          <DataField>ArrivalTimeatOffloadingPoint</DataField>
+        </Field>
+        <Field Name="AvaialabilityPerTruckNoDays">
+          <DataField>AvaialabilityPerTruckNoDays</DataField>
+        </Field>
+        <Field Name="AvaialabilityPerTruckNoDaysFormat">
+          <DataField>AvaialabilityPerTruckNoDaysFormat</DataField>
+        </Field>
+        <Field Name="BatchEntryNo">
+          <DataField>BatchEntryNo</DataField>
+        </Field>
+        <Field Name="ContractId">
+          <DataField>ContractId</DataField>
+        </Field>
+        <Field Name="CustomerName">
+          <DataField>CustomerName</DataField>
+        </Field>
+        <Field Name="CustomerNo">
+          <DataField>CustomerNo</DataField>
+        </Field>
+        <Field Name="DepartureTimefromLoadingPoint">
+          <DataField>DepartureTimefromLoadingPoint</DataField>
+        </Field>
+        <Field Name="DepartureTimefromOfloadinPoint">
+          <DataField>DepartureTimefromOfloadinPoint</DataField>
+        </Field>
+        <Field Name="DirectDispatch">
+          <DataField>DirectDispatch</DataField>
+        </Field>
+        <Field Name="DistanceCoveredKm">
+          <DataField>DistanceCoveredKm</DataField>
+        </Field>
+        <Field Name="DistanceCoveredKmFormat">
+          <DataField>DistanceCoveredKmFormat</DataField>
+        </Field>
+        <Field Name="DriversCode">
+          <DataField>DriversCode</DataField>
+        </Field>
+        <Field Name="DriversName">
+          <DataField>DriversName</DataField>
+        </Field>
+        <Field Name="EntryNo">
+          <DataField>EntryNo</DataField>
+        </Field>
+        <Field Name="ExpectedJourneyTime">
+          <DataField>ExpectedJourneyTime</DataField>
+        </Field>
+        <Field Name="FixedCost">
+          <DataField>FixedCost</DataField>
+        </Field>
+        <Field Name="FixedCostFormat">
+          <DataField>FixedCostFormat</DataField>
+        </Field>
+        <Field Name="FixedRate">
+          <DataField>FixedRate</DataField>
+        </Field>
+        <Field Name="FixedRateFormat">
+          <DataField>FixedRateFormat</DataField>
+        </Field>
+        <Field Name="LoadingDelayCost">
+          <DataField>LoadingDelayCost</DataField>
+        </Field>
+        <Field Name="LoadingDelayCostFormat">
+          <DataField>LoadingDelayCostFormat</DataField>
+        </Field>
+        <Field Name="LocationDestination">
+          <DataField>LocationDestination</DataField>
+        </Field>
+        <Field Name="NoofDays">
+          <DataField>NoofDays</DataField>
+        </Field>
+        <Field Name="NoofDaysFormat">
+          <DataField>NoofDaysFormat</DataField>
+        </Field>
+        <Field Name="OffLoadDepot">
+          <DataField>OffLoadDepot</DataField>
+        </Field>
+        <Field Name="ProductType">
+          <DataField>ProductType</DataField>
+        </Field>
+        <Field Name="Quantity">
+          <DataField>Quantity</DataField>
+        </Field>
+        <Field Name="QuantityFormat">
+          <DataField>QuantityFormat</DataField>
+        </Field>
+        <Field Name="QuantityLoadedNetWgtKg">
+          <DataField>QuantityLoadedNetWgtKg</DataField>
+        </Field>
+        <Field Name="QuantityLoadedNetWgtKgFormat">
+          <DataField>QuantityLoadedNetWgtKgFormat</DataField>
+        </Field>
+        <Field Name="QuantityOffloadedKg">
+          <DataField>QuantityOffloadedKg</DataField>
+        </Field>
+        <Field Name="QuantityOffloadedKgFormat">
+          <DataField>QuantityOffloadedKgFormat</DataField>
+        </Field>
+        <Field Name="ResidencyTimeatloadingpoint">
+          <DataField>ResidencyTimeatloadingpoint</DataField>
+        </Field>
+        <Field Name="ResidencyTimeatoffloadingpoint">
+          <DataField>ResidencyTimeatoffloadingpoint</DataField>
+        </Field>
+        <Field Name="SalesDocumentNo">
+          <DataField>SalesDocumentNo</DataField>
+        </Field>
+        <Field Name="Shortages">
+          <DataField>Shortages</DataField>
+        </Field>
+        <Field Name="ShortagesFormat">
+          <DataField>ShortagesFormat</DataField>
+        </Field>
+        <Field Name="ShortagesAmount">
+          <DataField>ShortagesAmount</DataField>
+        </Field>
+        <Field Name="ShortagesAmountFormat">
+          <DataField>ShortagesAmountFormat</DataField>
+        </Field>
+        <Field Name="SystemCreatedAt">
+          <DataField>SystemCreatedAt</DataField>
+        </Field>
+        <Field Name="SystemCreatedBy">
+          <DataField>SystemCreatedBy</DataField>
+        </Field>
+        <Field Name="SystemId">
+          <DataField>SystemId</DataField>
+        </Field>
+        <Field Name="SystemModifiedAt">
+          <DataField>SystemModifiedAt</DataField>
+        </Field>
+        <Field Name="SystemModifiedBy">
+          <DataField>SystemModifiedBy</DataField>
+        </Field>
+        <Field Name="ToleranceKG">
+          <DataField>ToleranceKG</DataField>
+        </Field>
+        <Field Name="ToleranceKGFormat">
+          <DataField>ToleranceKGFormat</DataField>
+        </Field>
+        <Field Name="TransactionDate">
+          <DataField>TransactionDate</DataField>
+        </Field>
+        <Field Name="Treated">
+          <DataField>Treated</DataField>
+        </Field>
+        <Field Name="TruckId">
+          <DataField>TruckId</DataField>
+        </Field>
+        <Field Name="TruckNo">
+          <DataField>TruckNo</DataField>
+        </Field>
+        <Field Name="TruckType">
+          <DataField>TruckType</DataField>
+        </Field>
+        <Field Name="UnitOfMeasure">
+          <DataField>UnitOfMeasure</DataField>
+        </Field>
+        <Field Name="UserId">
+          <DataField>UserId</DataField>
+        </Field>
+        <Field Name="VariableCost">
+          <DataField>VariableCost</DataField>
+        </Field>
+        <Field Name="VariableCostFormat">
+          <DataField>VariableCostFormat</DataField>
+        </Field>
+        <Field Name="VariableRate">
+          <DataField>VariableRate</DataField>
+        </Field>
+        <Field Name="VariableRateFormat">
+          <DataField>VariableRateFormat</DataField>
+        </Field>
+        <Field Name="WayBillNo">
+          <DataField>WayBillNo</DataField>
+        </Field>
+        <Field Name="TruckIdNo">
+          <DataField>TruckIdNo</DataField>
+        </Field>
+        <Field Name="Nodays">
+          <DataField>Nodays</DataField>
+        </Field>
+        <Field Name="NodaysFormat">
+          <DataField>NodaysFormat</DataField>
+        </Field>
+        <Field Name="FixedRateAmount">
+          <DataField>FixedRateAmount</DataField>
+        </Field>
+        <Field Name="FixedRateAmountFormat">
+          <DataField>FixedRateAmountFormat</DataField>
+        </Field>
+        <Field Name="TotalAmount">
+          <DataField>TotalAmount</DataField>
+        </Field>
+        <Field Name="TotalAmountFormat">
+          <DataField>TotalAmountFormat</DataField>
+        </Field>
+        <Field Name="K">
+          <DataField>K</DataField>
+        </Field>
+        <Field Name="FixedAmount">
+          <DataField>FixedAmount</DataField>
+        </Field>
+        <Field Name="FixedAmountFormat">
+          <DataField>FixedAmountFormat</DataField>
+        </Field>
+        <Field Name="VariableAmount">
+          <DataField>VariableAmount</DataField>
+        </Field>
+        <Field Name="VariableAmountFormat">
+          <DataField>VariableAmountFormat</DataField>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+    </DataSet>
+  </DataSets>
+</Report>

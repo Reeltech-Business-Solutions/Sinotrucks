@@ -1,0 +1,55 @@
+page 51550 "HR Lookup Values List"
+{
+    CardPageID = "HR Lookup Values Card";
+    DeleteAllowed = false;
+    UsageCategory = Lists;
+    InsertAllowed = false;
+    ModifyAllowed = false;
+    ApplicationArea = all;
+    PageType = List;
+    AdditionalSearchTerms = 'HR Lookup Values List';
+    SourceTable = "HR Lookup Values";
+
+    layout
+    {
+        area(content)
+        {
+            repeater(Control1102755000)
+            {
+                Editable = true;
+                ShowCaption = false;
+
+                field(Type; rec.Type)
+                {
+                    Enabled = false;
+                    ApplicationArea = all;
+                }
+                field("Code"; rec.Code)
+                {
+                    Enabled = false;
+                    ApplicationArea = all;
+                }
+                field(Description; rec.Description)
+                {
+                    Editable = false;
+                    ApplicationArea = all;
+                }
+            }
+        }
+        area(factboxes)
+        {
+            part(Control1102755004; "HR Lookup Values Factbox")
+            {
+                SubPageLink = Type = FIELD(Type);
+                ApplicationArea = All;
+            }
+        }
+    }
+    actions
+    {
+    }
+    trigger OnDeleteRecord(): Boolean
+    begin
+        Error('You cannot delete this record. Please contact your Systems Administrator');
+    end;
+}
