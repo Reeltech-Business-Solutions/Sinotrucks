@@ -179,6 +179,10 @@ tableextension 50043 "PurchLine " extends "Purchase Line"
         {
             TableRelation = Vendor where("Vendor Type" = filter('Import File'));
         }
+        field(60015; "Material Req No."; code[20])
+        {
+
+        }
         modify("No.")
         {
             trigger OnAfterValidate()

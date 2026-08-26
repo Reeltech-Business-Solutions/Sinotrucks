@@ -1083,7 +1083,7 @@ table 54578 "HR Employees" //54656
             var
 
             begin
-                if "Supervisor/Manager" = UserId then Error('you cannot assign self as thr supervisor');
+                if "Supervisor/Manager" = UserId then Error('you cannot assign self as the supervisor');
 
                 if rec."Supervisor/Manager" = '' then
                     rec.SupervisorName := '';

@@ -476,7 +476,7 @@ tableextension 50038 PurchHeaderExt extends "Purchase Header"
         BaseLine2.SetRange("Document Type", PurchHeader."Document Type");
         BaseLine2.SetRange("Document No.", PurchHeader."No.");
         if BaseLine2.FindSet() then
-            repeat
+            repeat  
                 if BaseLine2.Type <> BaseLine2.Type::" " then
                     TotalBaseAmount += BaseLine2.Amount;
             until BaseLine2.Next() = 0;

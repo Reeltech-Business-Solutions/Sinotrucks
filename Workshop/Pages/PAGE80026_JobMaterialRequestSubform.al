@@ -328,10 +328,12 @@ page 80026 "Job Material Request Subform"
             Error('A purchase requisition already exists for these job material request lines %1.', JobMaterialRequestHeader."purch. req doc no");
         JobMaterialRequestLines.Reset();
         JobMaterialRequestLines.setRange("Document No.", JobMaterialRequestHeader."No.");
-        if JobMaterialRequestLines.FindSet() then begin
+        JobMaterialRequestLines.SetRange(Notifications, true);
+        if JobMaterialRequestLines.findfirst() then
             if not (JobMaterialRequestLines.Notifications = true) then
                 error('The Request from procurement field is not ticked');
-        end;
+
+        // end;
         JobMaterialRequestLines2.setRange("Document No.", JobMaterialRequestHeader."No.");
         if JobMaterialRequestLines2.findSet() then
             if Jobs.Get(Rec."Job No.") then
@@ -416,6 +418,9 @@ page 80026 "Job Material Request Subform"
                         PurchaseLine.Validate("Shortcut Dimension 6 Code", JobMaterialRequestLines."Shortcut Dimension 6 Code");
                         PurchaseLine.Validate("Shortcut Dimension 7 Code", JobMaterialRequestLines."Shortcut Dimension 7 Code");
                         PurchaseLine.Validate("Shortcut Dimension 8 Code", JobMaterialRequestLines."Shortcut Dimension 8 Code");
+                        PurchaseLine.validate("Job No.", JobMaterialRequestLines."Job No.");
+                        PurchaseLine.validate("Job Task No.", JobMaterialRequestLines."Job Task No.");
+                        purchaseLine."Material Req No." := JobMaterialRequestLines."Document No.";
 
                         if PurchaseLine."No." <> '' then
                             if Item.Get(PurchaseLine."No.") then
@@ -462,12 +467,12 @@ page 80026 "Job Material Request Subform"
             Error('The Material Request has not been transferred to a Purchase Requisition Document yet.');
 
         JobMaterialRequestLines.Reset();
-        JobMaterialRequestLines.setRange("Document No.", JobMaterialRequestHeader."No.");
-        if JobMaterialRequestLines.FindSet() then
-            repeat
-                if not (JobMaterialRequestLines.Notifications = true) then
-                    error('The Request from procurement field is not ticked');
-            until JobmaterialRequestLines.Next() = 0;
+        JobMaterialRequestLines.setRange("Document No.", Rec."Document No.");
+        JobMaterialRequestLines.SetRange(Notifications, true);
+        if JobMaterialRequestLines.FindFirst() then
+            if not (JobMaterialRequestLines.Notifications = true) then
+                error('The Request from procurement field is not ticked');
+
 
         JobMaterialRequestLines2.setRange("Document No.", JobMaterialRequestHeader."No.");
         if JobMaterialRequestLines2.findSet() then
@@ -511,6 +516,8 @@ page 80026 "Job Material Request Subform"
                     PurchaseLine.Validate("Shortcut Dimension 1 Code", JobMaterialRequestLines."Shortcut Dimension 1 Code");
                     PurchaseLine.Validate("Shortcut Dimension 2 Code", JobMaterialRequestLines."Shortcut Dimension 2 Code");
                     PurchaseLine.Validate("Gen. Prod. Posting Group", JobMaterialRequestLines."Gen. Prod. Posting Group");
+                    PurchaseLine.validate("Job No.", JobMaterialRequestLines."Job No.");
+                    PurchaseLine.validate("Job Task No.", JobMaterialRequestLines."Job Task No.");
 
                     PurchaseLine.Type := PurchaseLine.Type::Item;
 
@@ -542,6 +549,9 @@ page 80026 "Job Material Request Subform"
                     PurchaseLine.Validate("Shortcut Dimension 1 Code", JobMaterialRequestLines."Shortcut Dimension 1 Code");
                     PurchaseLine.Validate("Shortcut Dimension 2 Code", JobMaterialRequestLines."Shortcut Dimension 2 Code");
                     PurchaseLine.Validate("Gen. Bus. Posting Group", JobMaterialRequestLines."Gen. Bus. Posting Group");
+                    PurchaseLine.validate("Job No.", JobMaterialRequestLines."Job No.");
+                    PurchaseLine.validate("Job Task No.", JobMaterialRequestLines."Job Task No.");
+                    purchaseLine."Material Req No." := JobMaterialRequestLines."Document No.";
                     PurchaseLine.Type := PurchaseLine.Type::Item;
 
                     if PurchaseLine."No." <> '' then
@@ -553,6 +563,7 @@ page 80026 "Job Material Request Subform"
                     PurchaseLine."Unit of Measure" := item."Base Unit of Measure";
                     PurchaseLine."Unit of Measure Code" := item."Base Unit of Measure";
                     PurchaseLine.Validate("Direct Unit Cost", Item."Unit Cost");
+                    
 
 
                     if PurchaseLine.Insert(true) then
@@ -570,6 +581,7 @@ page 80026 "Job Material Request Subform"
             if JobMaterialRequestLines.FindSet() then begin
                 repeat
                     PurchaseLine.Reset();
+                    PurchaseLine.setRange("Document Type", PurchaseLine."Document Type"::Quote);
                     PurchaseLine.setFilter("Document No.", '%1', JobMaterialRequestHeader."purch. req doc no");
                     PurchaseLine.SetFilter("Line No.", '%1', JobMaterialRequestLines."Line No.");
                     if PurchaseLine.FindFirst() then

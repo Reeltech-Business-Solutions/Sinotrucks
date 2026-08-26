@@ -24,11 +24,20 @@ pageextension 50021 PurchaseOrderSubformExt extends "Purchase Order Subform"
                     ServiceQte.SetRange("Document Type", ServiceQte."Document Type"::Quote);
                     ServiceQte.SetRange(ServiceQte."No.", Rec."Service Quote No.");
                     Page.Run(Page::"Service Quotes - External", ServiceQte);
-                   
+
 
                 end;
 
             }
+            field("1Job No."; Rec."Job No.")
+            {
+                ApplicationArea = All;
+            }
+            field("1Job Task No."; Rec."Job Task No.")
+            {
+                ApplicationArea = All;
+            }
+
         }
         addafter("Qty. Assigned")
         {
@@ -65,6 +74,16 @@ pageextension 50021 PurchaseOrderSubformExt extends "Purchase Order Subform"
         modify("Job Task No.")
         {
             Visible = true;
+        }
+
+        modify("Gen. Bus. Posting Group")
+        {
+            visible=false;
+        }
+
+        modify("Gen. Prod. Posting Group")
+        {
+            visible=false;
         }
     }
 }

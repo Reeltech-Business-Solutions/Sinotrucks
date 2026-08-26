@@ -330,6 +330,10 @@ tableextension 50028 "UsersetupExt " extends "User Setup"
         {
 
         }
+        field(50077; "Reopen TFOrder"; Boolean)
+        {
+
+        }
     }
 
     var
@@ -445,6 +449,10 @@ pageextension 50012 UserSetupExt extends "User Setup"
                 ApplicationArea = all;
             }
             field("Reopen Claims"; Rec."Reopen Claims")
+            {
+                ApplicationArea = All;
+            }
+            field("Reopen TFOrder"; Rec."Reopen TFOrder")
             {
                 ApplicationArea = All;
             }

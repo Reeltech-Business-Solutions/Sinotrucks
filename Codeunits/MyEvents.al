@@ -341,4 +341,6 @@ codeunit 50021 Subscriber
     begin
         GenJournalLine."Import File No." := PurchaseHeader."Import file No.";
     end;
+
+    
 }

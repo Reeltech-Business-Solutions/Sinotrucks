@@ -388,6 +388,16 @@ page 50087 "Purchase Requisition Subform"
                     ApplicationArea = All;
                     Editable = false;
                 }
+                field(jobNo; Rec."Job No.")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                }
+                field(jobTaskNo; Rec."Job Task No.")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                }
                 /*
                 field("Line Discount Amount"; "Line Discount Amount")
                 {

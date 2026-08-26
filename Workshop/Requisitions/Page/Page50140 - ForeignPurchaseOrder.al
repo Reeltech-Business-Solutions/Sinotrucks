@@ -66,7 +66,7 @@ page 50140 "Foreign Purchase Order"
                 {
                     ApplicationArea = Suite;
                     ToolTip = 'Specifies additional posting information for the document. After you post the document, the description can add detail to vendor and customer ledger entries.';
-                    Visible = false;
+                  
                 }
                 group("Buy-from")
                 {

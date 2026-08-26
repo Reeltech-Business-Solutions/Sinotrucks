@@ -7,7 +7,7 @@ pageextension 50004 TransferOrderExt extends "transfer order"
             field("Approval Status"; Rec."Approval Status")
             {
                 ApplicationArea = All;
-                Editable = false;
+                Editable = EditStatus;
 
             }
             field("Created By"; Rec."Created By")
@@ -100,6 +100,7 @@ pageextension 50004 TransferOrderExt extends "transfer order"
                 }
             }
         }
+
         modify(Post)
         {
             Enabled = rec.Status = rec.Status::Released;
@@ -114,16 +115,36 @@ pageextension 50004 TransferOrderExt extends "transfer order"
         }
         modify("Reo&pen")
         {
+            visible = false;
             trigger OnAfterAction()
             begin
 
-                // Rec.Validate("Approval Status", Rec."Approval Status"::Open);
-                // Rec.Modify();
+                // if userset.Get(UserId) then begin
+                //     if userset."Reopen Doc" = false then
+                //         Error('You are not permitted to perform this action')
+                //     else
+                //         if Confirm('Do you want to ReOpen purchase requisition status?') then begin
+                //             if Rec.status = Rec.status::Released then begin
+                //                 Rec.Validate("Approval Status", Rec."Approval Status"::Open);
+                //                 Rec.Modify();
+                //             end;
+
+                //         end;
+                // end;
             end;
         }
 
 
     }
+    trigger OnOpenPage()
+    begin
+        if UserSet.Get(UserId) then begin
+            if UserSet."Reopen TFOrder" = false then
+                EditStatus := false else
+                EditStatus := true;
+        end;
+    end;
+
     trigger OnAfterGetRecord()
     begin
         if rec."No." <> '' then begin
@@ -143,4 +164,8 @@ pageextension 50004 TransferOrderExt extends "transfer order"
                 rec.Status := Rec.Status::Open;
         end;
     end;
+
+    var
+        userset: record "User Setup";
+        EditStatus: Boolean;
 }

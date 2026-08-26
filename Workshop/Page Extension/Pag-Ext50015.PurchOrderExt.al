@@ -21,6 +21,11 @@ pageextension 50015 PurchOrderExt extends "Purchase Order"
                 ApplicationArea = All;
                 Editable = false;
             }
+            field("1Posting description"; Rec."Posting Description")
+            {
+                ApplicationArea = All;
+                ToolTip = 'Specifies additional posting information for the document. After you post the document, the description can add detail to vendor and customer ledger entries.';
+            }
         }
         addafter(Status)
         {
