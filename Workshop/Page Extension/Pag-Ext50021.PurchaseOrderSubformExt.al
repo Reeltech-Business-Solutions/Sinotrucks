@@ -78,12 +78,12 @@ pageextension 50021 PurchaseOrderSubformExt extends "Purchase Order Subform"
 
         modify("Gen. Bus. Posting Group")
         {
-            visible=false;
+            editable = false;
         }
 
         modify("Gen. Prod. Posting Group")
         {
-            visible=false;
+            editable = false;
         }
     }
 }

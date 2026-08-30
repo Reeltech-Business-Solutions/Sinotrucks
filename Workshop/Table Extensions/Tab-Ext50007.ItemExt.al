@@ -208,6 +208,27 @@ tableextension 50007 "ItemExt " extends item
         field(50184; "Supplier Name"; Code[20]) { DataClassification = ToBeClassified; }
         field(50185; "Size"; Code[20]) { DataClassification = ToBeClassified; }
         field(50186; "Truck Model"; Text[50]) { DataClassification = ToBeClassified; }
-
+        field(50187; "NRS HSN Code"; Text[30])
+        {
+            Caption = 'NRS HSN Code';
+            DataClassification = CustomerContent;
+        }
+        field(50188; "NRS Product Category"; Text[100])
+        {
+            Caption = 'NRS Product Category';
+            DataClassification = CustomerContent;
+        }
+        field(50189; "NRS ISIC Code"; Integer)
+        {
+            Caption = 'NRS ISIC Code';
+            DataClassification = CustomerContent;
+        }
+        field(50190; "NRS Service Category"; Text[100])
+        {
+            Caption = 'NRS Service Category';
+            DataClassification = CustomerContent;
+        }
     }
+
 }
+

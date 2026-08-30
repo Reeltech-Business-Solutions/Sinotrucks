@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+      <rd:SecurityType>None</rd:SecurityType>
+      <rd:DataSourceID>5299b6d4-7c2a-49df-a9c1-3c1a3f8b0001</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="DataSet_Result">
+      <Query>
+        <DataSourceName>DataSource</DataSourceName>
+        <CommandText />
+      </Query>
+      <Fields>
+        <Field Name="DocNo"><DataField>DocNo</DataField></Field>
+        <Field Name="PostingDate"><DataField>PostingDate</DataField></Field>
+        <Field Name="DueDate"><DataField>DueDate</DataField></Field>
+        <Field Name="CustName"><DataField>CustName</DataField></Field>
+        <Field Name="CustAddress"><DataField>CustAddress</DataField></Field>
+        <Field Name="CustAddress2"><DataField>CustAddress2</DataField></Field>
+        <Field Name="CustCity"><DataField>CustCity</DataField></Field>
+        <Field Name="CustPostCode"><DataField>CustPostCode</DataField></Field>
+        <Field Name="CustCountry"><DataField>CustCountry</DataField></Field>
+        <Field Name="CurrencyCode"><DataField>CurrencyCode</DataField></Field>
+        <Field Name="TotalAmount"><DataField>TotalAmount</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="TotalVAT"><DataField>TotalVAT</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="TotalInclVAT"><DataField>TotalInclVAT</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="IRN"><DataField>IRN</DataField></Field>
+        <Field Name="IRNStatus"><DataField>IRNStatus</DataField></Field>
+        <Field Name="ValidationStatus"><DataField>ValidationStatus</DataField></Field>
+        <Field Name="QRBase64"><DataField>QRBase64</DataField></Field>
+        <Field Name="SupplierName"><DataField>SupplierName</DataField></Field>
+        <Field Name="SupplierTIN"><DataField>SupplierTIN</DataField></Field>
+        <Field Name="SupplierEmail"><DataField>SupplierEmail</DataField></Field>
+        <Field Name="SupplierAddress"><DataField>SupplierAddress</DataField></Field>
+        <Field Name="CompanyName"><DataField>CompanyName</DataField></Field>
+        <Field Name="LineNo"><DataField>LineNo</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="LineDescription"><DataField>LineDescription</DataField></Field>
+        <Field Name="LineQuantity"><DataField>LineQuantity</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="LineUnitPrice"><DataField>LineUnitPrice</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="LineDiscountPct"><DataField>LineDiscountPct</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="LineAmount"><DataField>LineAmount</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Textbox Name="TitleBox">
+            <CanGrow>true</CanGrow>
+            <KeepTogether>true</KeepTogether>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>=First(Fields!SupplierName.Value, "DataSet_Result")</Value>
+                    <Style><FontSize>14pt</FontSize><FontWeight>Bold</FontWeight></Style>
+                  </TextRun>
+                </TextRuns>
+                <Style />
+              </Paragraph>
+            </Paragraphs>
+            <Top>0cm</Top><Left>0cm</Left><Height>0.7cm</Height><Width>11cm</Width>
+            <Style><Border><Style>None</Style></Border></Style>
+          </Textbox>
+          <Textbox Name="SupplierInfoBox">
+            <CanGrow>true</CanGrow>
+            <Paragraphs>
+              <Paragraph><TextRuns><TextRun><Value>=First(Fields!SupplierAddress.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style /></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>="TIN: " &amp; First(Fields!SupplierTIN.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style /></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>=First(Fields!SupplierEmail.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style /></Paragraph>
+            </Paragraphs>
+            <Top>0.7cm</Top><Left>0cm</Left><Height>1.6cm</Height><Width>11cm</Width>
+            <Style><Border><Style>None</Style></Border></Style>
+          </Textbox>
+          <Textbox Name="InvoiceTitleBox">
+            <Paragraphs><Paragraph><TextRuns><TextRun><Value>INVOICE</Value><Style><FontSize>16pt</FontSize><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs>
+            <Top>0cm</Top><Left>11cm</Left><Height>0.8cm</Height><Width>6cm</Width>
+            <Style><Border><Style>None</Style></Border></Style>
+          </Textbox>
+          <Textbox Name="HeaderInfoBox">
+            <CanGrow>true</CanGrow>
+            <Paragraphs>
+              <Paragraph><TextRuns><TextRun><Value>="Invoice No: " &amp; First(Fields!DocNo.Value, "DataSet_Result")</Value><Style><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>="IRN: " &amp; First(Fields!IRN.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>="IRN Status: " &amp; First(Fields!IRNStatus.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>="Validation: " &amp; First(Fields!ValidationStatus.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>="Date: " &amp; First(Fields!PostingDate.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>="Due: " &amp; First(Fields!DueDate.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+            </Paragraphs>
+            <Top>0.8cm</Top><Left>11cm</Left><Height>2.4cm</Height><Width>6cm</Width>
+            <Style><Border><Style>None</Style></Border></Style>
+          </Textbox>
+          <Textbox Name="BillToBox">
+            <CanGrow>true</CanGrow>
+            <Paragraphs>
+              <Paragraph><TextRuns><TextRun><Value>Bill To:</Value><Style><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>=First(Fields!CustName.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style /></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>=First(Fields!CustAddress.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style /></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>=First(Fields!CustCity.Value, "DataSet_Result") &amp; " " &amp; First(Fields!CustPostCode.Value, "DataSet_Result") &amp; " " &amp; First(Fields!CustCountry.Value, "DataSet_Result")</Value><Style /></TextRun></TextRuns><Style /></Paragraph>
+            </Paragraphs>
+            <Top>2.6cm</Top><Left>0cm</Left><Height>2cm</Height><Width>11cm</Width>
+            <Style><Border><Style>None</Style></Border></Style>
+          </Textbox>
+          <Tablix Name="LinesTablix">
+            <TablixBody>
+              <TablixColumns>
+                <TablixColumn><Width>9cm</Width></TablixColumn>
+                <TablixColumn><Width>2cm</Width></TablixColumn>
+                <TablixColumn><Width>3cm</Width></TablixColumn>
+                <TablixColumn><Width>3cm</Width></TablixColumn>
+              </TablixColumns>
+              <TablixRows>
+                <TablixRow>
+                  <Height>0.6cm</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="HdrDesc"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Description</Value><Style><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs><Style><BackgroundColor>#eeeeee</BackgroundColor><Border><Style>Solid</Style></Border></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="HdrQty"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Qty</Value><Style><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><BackgroundColor>#eeeeee</BackgroundColor><Border><Style>Solid</Style></Border></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="HdrPrice"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Unit Price</Value><Style><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><BackgroundColor>#eeeeee</BackgroundColor><Border><Style>Solid</Style></Border></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="HdrAmount"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Amount</Value><Style><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><BackgroundColor>#eeeeee</BackgroundColor><Border><Style>Solid</Style></Border></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>0.5cm</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="CellDesc"><CanGrow>true</CanGrow><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!LineDescription.Value</Value><Style /></TextRun></TextRuns><Style /></Paragraph></Paragraphs><Style><Border><Style>Solid</Style></Border></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="CellQty"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!LineQuantity.Value</Value><Style><Format>#,##0.##</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Style>Solid</Style></Border></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="CellPrice"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!LineUnitPrice.Value</Value><Style><Format>#,##0.00</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Style>Solid</Style></Border></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="CellAmount"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!LineAmount.Value</Value><Style><Format>#,##0.00</Format></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph></Paragraphs><Style><Border><Style>Solid</Style></Border></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+              </TablixRows>
+            </TablixBody>
+            <TablixColumnHierarchy>
+              <TablixMembers>
+                <TablixMember /><TablixMember /><TablixMember /><TablixMember />
+              </TablixMembers>
+            </TablixColumnHierarchy>
+            <TablixRowHierarchy>
+              <TablixMembers>
+                <TablixMember><KeepWithGroup>After</KeepWithGroup></TablixMember>
+                <TablixMember>
+                  <Group Name="LineDetails" />
+                </TablixMember>
+              </TablixMembers>
+            </TablixRowHierarchy>
+            <DataSetName>DataSet_Result</DataSetName>
+            <Top>4.8cm</Top><Left>0cm</Left><Height>1.1cm</Height><Width>17cm</Width>
+          </Tablix>
+          <Textbox Name="TotalsBox">
+            <CanGrow>true</CanGrow>
+            <Paragraphs>
+              <Paragraph><TextRuns><TextRun><Value>="Subtotal: " &amp; First(Fields!CurrencyCode.Value, "DataSet_Result") &amp; " " &amp; Format(First(Fields!TotalAmount.Value, "DataSet_Result"), "#,##0.00")</Value><Style /></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>="VAT: " &amp; First(Fields!CurrencyCode.Value, "DataSet_Result") &amp; " " &amp; Format(First(Fields!TotalVAT.Value, "DataSet_Result"), "#,##0.00")</Value><Style /></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+              <Paragraph><TextRuns><TextRun><Value>="Total: " &amp; First(Fields!CurrencyCode.Value, "DataSet_Result") &amp; " " &amp; Format(First(Fields!TotalInclVAT.Value, "DataSet_Result"), "#,##0.00")</Value><Style><FontWeight>Bold</FontWeight></Style></TextRun></TextRuns><Style><TextAlign>Right</TextAlign></Style></Paragraph>
+            </Paragraphs>
+            <Top>6.2cm</Top><Left>10cm</Left><Height>1.6cm</Height><Width>7cm</Width>
+            <Style><Border><Style>None</Style></Border></Style>
+          </Textbox>
+          <Textbox Name="QRLabel">
+            <Paragraphs><Paragraph><TextRuns><TextRun><Value>Scan to verify (NRS MBS)</Value><Style><FontSize>8pt</FontSize></Style></TextRun></TextRuns><Style /></Paragraph></Paragraphs>
+            <Top>6.2cm</Top><Left>0cm</Left><Height>0.4cm</Height><Width>4cm</Width>
+            <Style><Border><Style>None</Style></Border></Style>
+          </Textbox>
+          <Image Name="QRImage">
+            <Source>Database</Source>
+            <Value>=System.Convert.FromBase64String(IIF(First(Fields!QRBase64.Value, "DataSet_Result") = "", "", First(Fields!QRBase64.Value, "DataSet_Result")))</Value>
+            <MIMEType>image/png</MIMEType>
+            <Sizing>FitProportional</Sizing>
+            <Top>6.6cm</Top><Left>0cm</Left><Height>3.2cm</Height><Width>3.2cm</Width>
+            <Style><Border><Style>None</Style></Border></Style>
+          </Image>
+        </ReportItems>
+        <Height>10cm</Height>
+        <Style />
+      </Body>
+      <Width>17cm</Width>
+      <Page>
+        <PageHeight>29.7cm</PageHeight>
+        <PageWidth>21cm</PageWidth>
+        <LeftMargin>2cm</LeftMargin>
+        <RightMargin>2cm</RightMargin>
+        <TopMargin>1.5cm</TopMargin>
+        <BottomMargin>1.5cm</BottomMargin>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <rd:ReportUnitType>Cm</rd:ReportUnitType>
+  <rd:ReportID>7a2b1c9d-8e4f-4a10-b3c2-9d5e0f1a2b30</rd:ReportID>
+</Report>

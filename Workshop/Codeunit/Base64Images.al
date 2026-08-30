@@ -1,13 +1,18 @@
 codeunit 50110 "Proforma Image Mgt."
 {
     Access = Public;
- 
+
     var
-        // 1x1 fully transparent PNG. Returned instead of '' so the PICTURE
+        // 1x1 white PNG with alpha 0. Returned instead of '' so the PICTURE
         // content control in the Word layout always has valid base64 to
         // render. An empty value can make the whole repeating row fail.
-        BlankPngTok: Label 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', Locked = true;
- 
+        //
+        // The pixel is white rather than black so it still disappears if the
+        // renderer discards the alpha channel. Do not swap this for one of the
+        // "1x1 transparent PNG" strings floating around online - the common one
+        // decodes to RGBA(0, 0, 255, 127) and prints as a sky-blue block.
+        BlankPngTok: Label 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4//8/AwAI/AL+eMSysAAAAABJRU5ErkJggg==', Locked = true;
+
     /// <summary>
     /// Base64 picture for a sales line. Non-item lines, items with no picture,
     /// and unknown item numbers all return a blank placeholder image.
@@ -20,7 +25,7 @@ codeunit 50110 "Proforma Image Mgt."
             exit(BlankPngTok);
         exit(GetPictureForItem(ItemNo));
     end;
- 
+
     /// <summary>
     /// Base64 picture for an item, or a blank placeholder if there is none.
     /// </summary>
@@ -38,20 +43,20 @@ codeunit 50110 "Proforma Image Mgt."
             exit(BlankPngTok);
         if Item.Picture.Count = 0 then
             exit(BlankPngTok);
- 
+
         MediaId := Item.Picture.Item(1);
         if not TenantMedia.Get(MediaId) then
             exit(BlankPngTok);
- 
+
         TenantMedia.CalcFields(Content);
         if not TenantMedia.Content.HasValue() then
             exit(BlankPngTok);
- 
+
         TenantMedia.Content.CreateInStream(InStr);
         exit(Base64Convert.ToBase64(InStr));
     end;
- 
-  
+
+
     procedure HasPicture(ItemNo: Code[20]): Boolean
     var
         Item: Record Item;
