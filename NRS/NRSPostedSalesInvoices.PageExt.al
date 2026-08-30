@@ -2,7 +2,8 @@ pageextension 50180 "NRS Posted Sales Invoices" extends "Posted Sales Invoices"
 {
     layout
     {
-        addafter("No.")
+        // Placed at the far right of the list.
+        addlast(Control1)
         {
             field("NRS IRN Status"; Rec."NRS IRN Status")
             {
@@ -74,6 +75,26 @@ pageextension 50180 "NRS Posted Sales Invoices" extends "Posted Sales Invoices"
                     EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
                 begin
                     EInvoiceMgt.ShowQRForInvoice(Rec);
+                end;
+            }
+            action(NRSGenerateAndValidate)
+            {
+                ApplicationArea = All;
+                Caption = 'Generate IRN && Validate';
+                ToolTip = 'Generates the IRN and validates the selected invoices in one step.';
+                Image = SendApprovalRequest;
+                Promoted = true;
+                PromotedCategory = Process;
+                PromotedOnly = true;
+
+                trigger OnAction()
+                var
+                    SalesInvHeader: Record "Sales Invoice Header";
+                    ValidateMgt: Codeunit "NRS Validate Invoice Mgt.";
+                begin
+                    CurrPage.SetSelectionFilter(SalesInvHeader);
+                    ValidateMgt.GenerateAndValidateForSelected(SalesInvHeader);
+                    CurrPage.Update(false);
                 end;
             }
             action(NRSValidate)

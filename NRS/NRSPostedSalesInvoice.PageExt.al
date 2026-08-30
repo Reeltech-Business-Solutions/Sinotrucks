@@ -98,6 +98,31 @@ pageextension 50181 "NRS Posted Sales Invoice" extends "Posted Sales Invoice"
                     EInvoiceMgt.ShowQRForInvoice(Rec);
                 end;
             }
+            action(NRSGenerateAndValidateCard)
+            {
+                ApplicationArea = All;
+                Caption = 'Generate IRN && Validate';
+                ToolTip = 'Generates the IRN and validates this invoice in one step.';
+                Image = SendApprovalRequest;
+                Promoted = true;
+                PromotedCategory = Process;
+                PromotedOnly = true;
+
+                trigger OnAction()
+                var
+                    ValidateMgt: Codeunit "NRS Validate Invoice Mgt.";
+                    ResultStatus: Enum "NRS Validation Status";
+                    OkTxt: Label 'IRN generated and invoice validated successfully.';
+                    FailTxt: Label 'Generate + Validate did not complete. See the NRS IRN Log for details.';
+                begin
+                    ResultStatus := ValidateMgt.GenerateAndValidateForInvoice(Rec);
+                    CurrPage.Update(false);
+                    if ResultStatus = ResultStatus::Validated then
+                        Message(OkTxt)
+                    else
+                        Message(FailTxt);
+                end;
+            }
             action(NRSValidateCard)
             {
                 ApplicationArea = All;

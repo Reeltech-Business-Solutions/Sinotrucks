@@ -1,4 +1,4 @@
-page 50389 "NRS Setup"
+page 50480 "NRS Setup"
 {
     Caption = 'NRS Setup';
     PageType = Card;
@@ -154,11 +154,6 @@ page 50389 "NRS Setup"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the default invoice_type_code (see NRS Resources 1.6.1, e.g. 396).';
-                }
-                field("Def. Invoice Kind"; Rec."Def. Invoice Kind")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the default invoice_kind (B2B, B2C, B2G, G2B). Can be overridden per customer.';
                 }
                 field("Def. Payment Status"; Rec."Def. Payment Status")
                 {

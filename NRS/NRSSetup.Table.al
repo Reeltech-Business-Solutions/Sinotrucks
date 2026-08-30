@@ -108,12 +108,6 @@ table 50180 "NRS Setup"
             Caption = 'Default Invoice Type Code';
             DataClassification = CustomerContent;
         }
-        field(42; "Def. Invoice Kind"; Text[10])
-        {
-            Caption = 'Default Invoice Kind';
-            DataClassification = CustomerContent;
-            InitValue = 'B2B';
-        }
         field(43; "Def. Payment Status"; Text[10])
         {
             Caption = 'Default Payment Status';
@@ -267,7 +261,6 @@ table 50180 "NRS Setup"
         TestField("Supplier State Code");
         TestField("Supplier Country");
         TestField("Def. Invoice Type Code");
-        TestField("Def. Invoice Kind");
         TestField("Def. Document Currency");
         TestField("Def. Tax Category");
         TestField("Def. Price Unit");

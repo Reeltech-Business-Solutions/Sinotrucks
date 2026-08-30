@@ -23,11 +23,14 @@ codeunit 50181 "NRS Validate Invoice Mgt."
 
     var
         ValidatePathTok: Label 'validate', Locked = true;
+        ZeroVatTok: Label 'ZERO_VAT', Locked = true;
         ConnErrTxt: Label 'Could not reach the NRS e-invoicing service. Check network access / firewall.';
         NothingSelectedTxt: Label 'No invoices were selected.';
         NoIRNTxt: Label 'Invoice %1 has no IRN yet. Generate the IRN before validating.', Comment = '%1 = invoice no.';
         ConfirmBatchTxt: Label 'Validate %1 selected invoice(s) with NRS?', Comment = '%1 = count';
         SummaryTxt: Label 'Validation complete.\n\nProcessed: %1\nValidated: %2\nFailed: %3', Comment = '%1..%3 counts';
+        ConfirmGVTxt: Label 'Generate IRN and validate %1 selected invoice(s)?', Comment = '%1 = count';
+        GVSummaryTxt: Label 'Generate + Validate complete.\n\nProcessed: %1\nIRN generated: %2\nValidated: %3\nFailed: %4', Comment = '%1..%4 counts';
 
     /// <summary>Batch validation from the Posted Sales Invoices list.</summary>
     procedure ValidateForSelected(var SalesInvHeader: Record "Sales Invoice Header")
@@ -109,6 +112,72 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     end;
 
     // ----------------------------------------------------------------------------------
+    // Generate IRN + Validate in one pass
+    // ----------------------------------------------------------------------------------
+
+    /// <summary>For each selected invoice: generate the IRN, then validate - in one action.</summary>
+    procedure GenerateAndValidateForSelected(var SalesInvHeader: Record "Sales Invoice Header")
+    var
+        NRSSetup: Record "NRS Setup";
+        IRNStatus: Enum "NRS IRN Status";
+        ValStatus: Enum "NRS Validation Status";
+        EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+        RefreshedHeader: Record "Sales Invoice Header";
+        TotalCount: Integer;
+        GeneratedCount: Integer;
+        ValidatedCount: Integer;
+        FailCount: Integer;
+    begin
+        NRSSetup.CheckReadyForValidate();
+
+        if SalesInvHeader.IsEmpty() then begin
+            Message(NothingSelectedTxt);
+            exit;
+        end;
+
+        if not Confirm(ConfirmGVTxt, false, SalesInvHeader.Count()) then
+            exit;
+
+        SalesInvHeader.FindSet();
+        repeat
+            TotalCount += 1;
+            IRNStatus := EInvoiceMgt.GenerateForInvoice(SalesInvHeader, false);
+            if IRNStatus in [IRNStatus::Generated, IRNStatus::Duplicate] then begin
+                GeneratedCount += 1;
+                if RefreshedHeader.Get(SalesInvHeader."No.") and (RefreshedHeader."NRS IRN" <> '') then begin
+                    ValStatus := ValidateForInvoice(RefreshedHeader);
+                    if ValStatus = ValStatus::Validated then
+                        ValidatedCount += 1
+                    else
+                        FailCount += 1;
+                end else
+                    FailCount += 1;
+            end else
+                FailCount += 1;
+        until SalesInvHeader.Next() = 0;
+
+        Message(GVSummaryTxt, TotalCount, GeneratedCount, ValidatedCount, FailCount);
+    end;
+
+    /// <summary>Single invoice: generate the IRN then validate. Returns the validation status.</summary>
+    procedure GenerateAndValidateForInvoice(SalesInvHeader: Record "Sales Invoice Header"): Enum "NRS Validation Status"
+    var
+        EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+        RefreshedHeader: Record "Sales Invoice Header";
+        IRNStatus: Enum "NRS IRN Status";
+        ValStatus: Enum "NRS Validation Status";
+    begin
+        IRNStatus := EInvoiceMgt.GenerateForInvoice(SalesInvHeader, false);
+        if not (IRNStatus in [IRNStatus::Generated, IRNStatus::Duplicate]) then
+            exit(ValStatus::Failed);
+        if not RefreshedHeader.Get(SalesInvHeader."No.") then
+            exit(ValStatus::Failed);
+        if RefreshedHeader."NRS IRN" = '' then
+            exit(ValStatus::Failed);
+        exit(ValidateForInvoice(RefreshedHeader));
+    end;
+
+    // ----------------------------------------------------------------------------------
     // Payload builder
     // ----------------------------------------------------------------------------------
 
@@ -122,6 +191,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         InvoiceLineArr: JsonArray;
         CurrencyCode: Code[10];
         InvoiceKind: Text;
+        TaxCategoryId: Text;
         TaxExclusive: Decimal;
         TaxInclusive: Decimal;
         TaxAmount: Decimal;
@@ -134,13 +204,29 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         TaxExclusive := SalesInvHeader.Amount;
         TaxInclusive := SalesInvHeader."Amount Including VAT";
         TaxAmount := TaxInclusive - TaxExclusive;
-        if TaxExclusive <> 0 then
-            EffectivePct := Round(TaxAmount / TaxExclusive * 100, 0.01);
 
+        // VAT is taken from the posted invoice's own VAT (which is driven by the invoice's
+        // VAT Business/Product posting groups). If VAT was charged -> Standard VAT at the
+        // posted rate (e.g. 7.5%); if no VAT was charged (NOVAT) -> Zero VAT at 0%.
+        if TaxAmount > 0 then begin
+            TaxCategoryId := NRSSetup."Def. Tax Category";
+            if TaxCategoryId = '' then
+                TaxCategoryId := 'STANDARD_VAT';
+            if TaxExclusive <> 0 then
+                EffectivePct := Round(TaxAmount / TaxExclusive * 100, 0.1)
+            else
+                EffectivePct := 0;
+        end else begin
+            TaxCategoryId := ZeroVatTok;
+            EffectivePct := 0;
+        end;
+
+        // invoice_kind is taken from the customer card (NRS Invoice Kind). Falls back to B2B
+        // only if a customer has not been tagged.
         if Customer.Get(SalesInvHeader."Bill-to Customer No.") then;
         InvoiceKind := Customer."NRS Invoice Kind";
         if InvoiceKind = '' then
-            InvoiceKind := NRSSetup."Def. Invoice Kind";
+            InvoiceKind := 'B2B';
 
         // ---- Header scalars ----
         Body.Add('business_id', NRSSetup."Business ID");
@@ -169,7 +255,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('accounting_customer_party', CustomerParty);
 
         // ---- Tax total ----
-        BuildTaxTotal(TaxTotalArr, TaxAmount, TaxExclusive, EffectivePct, NRSSetup."Def. Tax Category");
+        BuildTaxTotal(TaxTotalArr, TaxAmount, TaxExclusive, EffectivePct, TaxCategoryId);
         Body.Add('tax_total', TaxTotalArr);
 
         // ---- Legal monetary total ----

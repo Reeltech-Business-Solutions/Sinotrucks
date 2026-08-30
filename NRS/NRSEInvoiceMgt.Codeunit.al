@@ -266,7 +266,7 @@ codeunit 50180 "NRS E-Invoice Mgt."
         Body.Add('certificate', NRSSetup.GetCertificate());
         Body.WriteTo(RawBody);
 
-        Timestamp := Format(CurrentDateTime, 0, '<Year4>-<Month,2>-<Day,2>T<Hours24,2>:<Minutes,2>:<Seconds,2>Z');
+        Timestamp := GetUtcTimestamp();
         Signature := Crypto.GenerateHashAsBase64String(RawBody + Timestamp, ClientSecret, HmacAlg::HMACSHA256);
         EndpointUrl := BuildUrl(NRSSetup."Base URL", GenerateQrPathTok);
 
@@ -316,7 +316,7 @@ codeunit 50180 "NRS E-Invoice Mgt."
     begin
         NRSSetup.GetRecordOnce();
         ClientSecret := NRSSetup.GetClientSecret();
-        Timestamp := Format(CurrentDateTime, 0, '<Year4>-<Month,2>-<Day,2>T<Hours24,2>:<Minutes,2>:<Seconds,2>Z');
+        Timestamp := GetUtcTimestamp();
         Signature := Crypto.GenerateHashAsBase64String(RawBody + Timestamp, ClientSecret, HmacAlg::HMACSHA256);
         EndpointUrl := BuildUrl(NRSSetup."Base URL", ResourcePath);
         HttpStatusCode := 0;
@@ -342,7 +342,7 @@ codeunit 50180 "NRS E-Invoice Mgt."
         Body.WriteTo(RawBody);
 
         // ISO-8601 UTC timestamp (CurrentDateTime is UTC on BC SaaS), +/- 5 min window allowed.
-        Timestamp := Format(CurrentDateTime, 0, '<Year4>-<Month,2>-<Day,2>T<Hours24,2>:<Minutes,2>:<Seconds,2>Z');
+        Timestamp := GetUtcTimestamp();
 
         // Sign the exact bytes we send. Secret key is treated as a UTF-8 string.
         Signature := Crypto.GenerateHashAsBase64String(RawBody + Timestamp, ClientSecret, HmacAlg::HMACSHA256);
@@ -465,5 +465,19 @@ codeunit 50180 "NRS E-Invoice Mgt."
         if ResourcePath.StartsWith('/') then
             ResourcePath := CopyStr(ResourcePath, 2);
         exit(BaseUrl + '/' + ResourcePath);
+    end;
+
+    /// <summary>
+    /// Returns the current time as a UTC ISO-8601 string (e.g. 2026-08-30T16:38:25Z).
+    /// Format style 9 renders the DateTime in UTC with a trailing 'Z'; building the string
+    /// manually from CurrentDateTime would use the session's local time and be rejected as
+    /// outside the server's +/- 5 minute window on any non-UTC server.
+    /// </summary>
+    local procedure GetUtcTimestamp(): Text
+    begin
+        // Format style 9 renders the DateTime as a UTC ISO-8601 instant (e.g.
+        // 2026-08-30T16:38:25.217Z). The exact string is what we sign and send, so no
+        // reformatting is needed - the server just needs a correct instant within +/- 5 min.
+        exit(Format(CurrentDateTime, 0, 9));
     end;
 }
