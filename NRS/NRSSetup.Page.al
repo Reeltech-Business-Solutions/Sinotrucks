@@ -1,4 +1,4 @@
-page 50480 "NRS Setup"
+page 50380 "NRS Setup"
 {
     Caption = 'NRS Setup';
     PageType = Card;
@@ -179,6 +179,31 @@ page 50480 "NRS Setup"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the default payment_means_code (see NRS Resources 1.6.2).';
+                }
+            }
+            group(LineDefaults)
+            {
+                Caption = 'Default Line Classification';
+
+                field("Def. HSN Code"; Rec."Def. HSN Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the default HSN code for invoice lines when the item has none.';
+                }
+                field("Def. Product Category"; Rec."Def. Product Category")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the default product category when the item has none.';
+                }
+                field("Def. ISIC Code"; Rec."Def. ISIC Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the default ISIC code when the item has none.';
+                }
+                field("Def. Service Category"; Rec."Def. Service Category")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the default service category (required by NRS whenever an ISIC code is sent).';
                 }
             }
         }

@@ -135,6 +135,27 @@ table 50180 "NRS Setup"
             DataClassification = CustomerContent;
             InitValue = 'NGN';
         }
+        // ---- Default line classification (used when an item has none) ----
+        field(48; "Def. HSN Code"; Text[30])
+        {
+            Caption = 'Default HSN Code';
+            DataClassification = CustomerContent;
+        }
+        field(49; "Def. Product Category"; Text[100])
+        {
+            Caption = 'Default Product Category';
+            DataClassification = CustomerContent;
+        }
+        field(50; "Def. ISIC Code"; Integer)
+        {
+            Caption = 'Default ISIC Code';
+            DataClassification = CustomerContent;
+        }
+        field(51; "Def. Service Category"; Text[100])
+        {
+            Caption = 'Default Service Category';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys

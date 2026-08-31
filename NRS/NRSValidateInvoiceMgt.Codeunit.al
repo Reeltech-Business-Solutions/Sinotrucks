@@ -320,6 +320,12 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         LineObj: JsonObject;
         ItemObj: JsonObject;
         PriceObj: JsonObject;
+        HsnCode: Text;
+        ProductCategory: Text;
+        ServiceCategory: Text;
+        IsicCode: Integer;
+        IsService: Boolean;
+        ItemHasService: Boolean;
     begin
         Clear(Arr);
         SalesInvLine.SetRange("Document No.", SalesInvHeader."No.");
@@ -345,16 +351,38 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             LineObj.Add('item', ItemObj);
             LineObj.Add('price', PriceObj);
 
+            // Resolve classification: item value first, otherwise the setup default.
+            HsnCode := NRSSetup."Def. HSN Code";
+            ProductCategory := NRSSetup."Def. Product Category";
+            IsicCode := NRSSetup."Def. ISIC Code";
+            ServiceCategory := NRSSetup."Def. Service Category";
+            ItemHasService := false;
             if (SalesInvLine.Type = SalesInvLine.Type::Item) and Item.Get(SalesInvLine."No.") then begin
-                LineObj.Add('hsn_code', Item."NRS HSN Code");
-                LineObj.Add('product_category', Item."NRS Product Category");
-                LineObj.Add('isic_code', Item."NRS ISIC Code");
-                LineObj.Add('service_category', Item."NRS Service Category");
-            end else begin
-                LineObj.Add('hsn_code', '');
-                LineObj.Add('product_category', '');
-                LineObj.Add('isic_code', 0);
-                LineObj.Add('service_category', '');
+                if Item."NRS HSN Code" <> '' then
+                    HsnCode := Item."NRS HSN Code";
+                if Item."NRS Product Category" <> '' then
+                    ProductCategory := Item."NRS Product Category";
+                if Item."NRS ISIC Code" <> 0 then
+                    IsicCode := Item."NRS ISIC Code";
+                if Item."NRS Service Category" <> '' then begin
+                    ServiceCategory := Item."NRS Service Category";
+                    ItemHasService := true;
+                end;
+            end;
+
+            // Goods (Item, G/L, etc.) carry HSN + product category.
+            // Services (Resource lines - e.g. maintenance) carry ISIC + service category.
+            // NRS only requires service_category when isic_code is present, so the pair is sent
+            // for service lines only (or items you've explicitly tagged with a service category).
+            IsService := SalesInvLine.Type = SalesInvLine.Type::Resource;
+
+            if HsnCode <> '' then
+                LineObj.Add('hsn_code', HsnCode);
+            if ProductCategory <> '' then
+                LineObj.Add('product_category', ProductCategory);
+            if (IsService or ItemHasService) and (ServiceCategory <> '') then begin
+                LineObj.Add('isic_code', IsicCode);
+                LineObj.Add('service_category', ServiceCategory);
             end;
 
             LineObj.Add('discount_rate', SalesInvLine."Line Discount %");
