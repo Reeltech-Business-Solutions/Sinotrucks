@@ -19,7 +19,8 @@ codeunit 50181 "NRS Validate Invoice Mgt."
                   tabledata "Sales Invoice Header" = R,
                   tabledata "Sales Invoice Line" = R,
                   tabledata Customer = R,
-                  tabledata Item = R;
+                  tabledata Item = R,
+                  tabledata "Unit of Measure" = R;
 
     var
         ValidatePathTok: Label 'validate', Locked = true;
@@ -191,35 +192,16 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         InvoiceLineArr: JsonArray;
         CurrencyCode: Code[10];
         InvoiceKind: Text;
-        TaxCategoryId: Text;
         TaxExclusive: Decimal;
         TaxInclusive: Decimal;
-        TaxAmount: Decimal;
-        EffectivePct: Decimal;
     begin
         CurrencyCode := SalesInvHeader."Currency Code";
         if CurrencyCode = '' then
             CurrencyCode := NRSSetup."Def. Document Currency";
 
+        // Totals for legal_monetary_total come straight from the posted header.
         TaxExclusive := SalesInvHeader.Amount;
         TaxInclusive := SalesInvHeader."Amount Including VAT";
-        TaxAmount := TaxInclusive - TaxExclusive;
-
-        // VAT is taken from the posted invoice's own VAT (which is driven by the invoice's
-        // VAT Business/Product posting groups). If VAT was charged -> Standard VAT at the
-        // posted rate (e.g. 7.5%); if no VAT was charged (NOVAT) -> Zero VAT at 0%.
-        if TaxAmount > 0 then begin
-            TaxCategoryId := NRSSetup."Def. Tax Category";
-            if TaxCategoryId = '' then
-                TaxCategoryId := 'STANDARD_VAT';
-            if TaxExclusive <> 0 then
-                EffectivePct := Round(TaxAmount / TaxExclusive * 100, 0.1)
-            else
-                EffectivePct := 0;
-        end else begin
-            TaxCategoryId := ZeroVatTok;
-            EffectivePct := 0;
-        end;
 
         // invoice_kind is taken from the customer card (NRS Invoice Kind). Falls back to B2B
         // only if a customer has not been tagged.
@@ -255,7 +237,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('accounting_customer_party', CustomerParty);
 
         // ---- Tax total ----
-        BuildTaxTotal(TaxTotalArr, TaxAmount, TaxExclusive, EffectivePct, TaxCategoryId);
+        BuildTaxTotalFromLines(SalesInvHeader, NRSSetup, TaxTotalArr);
         Body.Add('tax_total', TaxTotalArr);
 
         // ---- Legal monetary total ----
@@ -292,22 +274,72 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         PartyObj.Add('postal_address', Addr);
     end;
 
-    local procedure BuildTaxTotal(var Arr: JsonArray; TaxAmount: Decimal; Taxable: Decimal; Percent: Decimal; TaxCategoryId: Text)
+    /// <summary>
+    /// Builds tax_total from the invoice lines: VAT is summed per line and grouped by VAT rate,
+    /// producing one tax_subtotal per distinct rate (e.g. a 7.5% Standard VAT subtotal and, if the
+    /// invoice mixes treatments, a separate 0% Zero VAT subtotal).
+    /// </summary>
+    local procedure BuildTaxTotalFromLines(SalesInvHeader: Record "Sales Invoice Header"; NRSSetup: Record "NRS Setup"; var Arr: JsonArray)
     var
+        SalesInvLine: Record "Sales Invoice Line";
         TotalObj: JsonObject;
         SubtotalObj: JsonObject;
         CategoryObj: JsonObject;
         SubtotalArr: JsonArray;
+        TaxableByRate: Dictionary of [Decimal, Decimal];
+        VatByRate: Dictionary of [Decimal, Decimal];
+        Rate: Decimal;
+        LineBase: Decimal;
+        LineVat: Decimal;
+        TotalVat: Decimal;
+        Taxable: Decimal;
+        Vat: Decimal;
+        CategoryId: Text;
     begin
-        CategoryObj.Add('id', TaxCategoryId);
-        CategoryObj.Add('percent', Percent);
+        // Accumulate taxable base and VAT per rate, straight from each posted line.
+        SalesInvLine.SetRange("Document No.", SalesInvHeader."No.");
+        SalesInvLine.SetFilter(Type, '<>%1', SalesInvLine.Type::" ");
+        SalesInvLine.SetFilter(Quantity, '<>%1', 0);
+        if SalesInvLine.FindSet() then
+            repeat
+                Rate := SalesInvLine."VAT %";
+                LineBase := SalesInvLine.Amount;
+                LineVat := SalesInvLine."Amount Including VAT" - SalesInvLine.Amount;
+                if TaxableByRate.ContainsKey(Rate) then begin
+                    TaxableByRate.Set(Rate, TaxableByRate.Get(Rate) + LineBase);
+                    VatByRate.Set(Rate, VatByRate.Get(Rate) + LineVat);
+                end else begin
+                    TaxableByRate.Add(Rate, LineBase);
+                    VatByRate.Add(Rate, LineVat);
+                end;
+            until SalesInvLine.Next() = 0;
 
-        SubtotalObj.Add('taxable_amount', Taxable);
-        SubtotalObj.Add('tax_amount', TaxAmount);
-        SubtotalObj.Add('tax_category', CategoryObj);
-        SubtotalArr.Add(SubtotalObj);
+        // One tax_subtotal per rate group.
+        foreach Rate in TaxableByRate.Keys() do begin
+            Taxable := TaxableByRate.Get(Rate);
+            Vat := VatByRate.Get(Rate);
+            TotalVat += Vat;
 
-        TotalObj.Add('tax_amount', TaxAmount);
+            if Rate > 0 then begin
+                CategoryId := NRSSetup."Def. Tax Category";
+                if CategoryId = '' then
+                    CategoryId := 'STANDARD_VAT';
+            end else
+                CategoryId := ZeroVatTok;
+
+            Clear(CategoryObj);
+            CategoryObj.Add('id', CategoryId);
+            CategoryObj.Add('percent', Rate);
+
+            Clear(SubtotalObj);
+            SubtotalObj.Add('taxable_amount', Taxable);
+            SubtotalObj.Add('tax_amount', Vat);
+            SubtotalObj.Add('tax_category', CategoryObj);
+            SubtotalArr.Add(SubtotalObj);
+        end;
+
+        Clear(TotalObj);
+        TotalObj.Add('tax_amount', TotalVat);
         TotalObj.Add('tax_subtotal', SubtotalArr);
         Clear(Arr);
         Arr.Add(TotalObj);
@@ -317,9 +349,12 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     var
         SalesInvLine: Record "Sales Invoice Line";
         Item: Record Item;
+        UnitOfMeasure: Record "Unit of Measure";
         LineObj: JsonObject;
         ItemObj: JsonObject;
         PriceObj: JsonObject;
+        PriceUnit: Text;
+        MappedUnit: Text;
         HsnCode: Text;
         ProductCategory: Text;
         ServiceCategory: Text;
@@ -342,10 +377,25 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             if SalesInvLine."No." <> '' then
                 ItemObj.Add('sellers_item_identification', SalesInvLine."No.");
 
+            // price_unit resolution order:
+            //  1) the unit's International Standard Code, if set on the Unit of Measure card;
+            //  2) the built-in UN/ECE mapping for the company's known unit codes;
+            //  3) the setup default.
+            PriceUnit := NRSSetup."Def. Price Unit";
+            if SalesInvLine."Unit of Measure Code" <> '' then begin
+                MappedUnit := '';
+                if UnitOfMeasure.Get(SalesInvLine."Unit of Measure Code") then
+                    MappedUnit := UnitOfMeasure."International Standard Code";
+                if MappedUnit = '' then
+                    MappedUnit := MapUnitCode(SalesInvLine."Unit of Measure Code");
+                if MappedUnit <> '' then
+                    PriceUnit := MappedUnit;
+            end;
+
             Clear(PriceObj);
             PriceObj.Add('price_amount', SalesInvLine."Unit Price");
             PriceObj.Add('base_quantity', 1);
-            PriceObj.Add('price_unit', NRSSetup."Def. Price Unit");
+            PriceObj.Add('price_unit', PriceUnit);
 
             Clear(LineObj);
             LineObj.Add('item', ItemObj);
@@ -405,6 +455,40 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if SalesInvLine.Description <> '' then
             exit(SalesInvLine.Description);
         exit(SalesInvLine."No.");
+    end;
+
+    /// <summary>Maps a Business Central unit-of-measure code to its UN/ECE (NRS) price_unit code.</summary>
+    local procedure MapUnitCode(UomCode: Code[10]): Text
+    begin
+        case UpperCase(UomCode) of
+            'KG':
+                exit('KGM');
+            'LITRE':
+                exit('LTR');
+            'METERS':
+                exit('MTR');
+            'LENGTH':
+                exit('MTR');
+            'YARD':
+                exit('YRD');
+            'GALLON':
+                exit('GLI');
+            'HRS':
+                exit('HUR');
+            'MINS':
+                exit('MIN');
+            'DAYS':
+                exit('DAY');
+            'PAIR':
+                exit('PR');
+            'SET':
+                exit('SET');
+            'PCS':
+                exit('H87');
+            'CAN', 'CUP', 'CYLINDER', 'DRUM', 'KEG', 'PACK', 'ROLL', 'SHEET', 'UNIT':
+                exit('C62');
+        end;
+        exit('');
     end;
 
     local procedure GetCustomerCountry(Customer: Record Customer; SalesInvHeader: Record "Sales Invoice Header"): Text
