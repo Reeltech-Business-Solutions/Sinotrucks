@@ -130,16 +130,6 @@ page 50380 "NRS Setup"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the supplier postal/ZIP code.';
                 }
-                field("Supplier LGA Code"; Rec."Supplier LGA Code")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the supplier Local Government Area code.';
-                }
-                field("Supplier State Code"; Rec."Supplier State Code")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the supplier State code.';
-                }
                 field("Supplier Country"; Rec."Supplier Country")
                 {
                     ApplicationArea = All;

@@ -225,15 +225,13 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         // ---- Supplier party (required) ----
         BuildParty(SupplierParty, NRSSetup."Supplier Name", NRSSetup."Supplier TIN", NRSSetup."Supplier Email",
             NRSSetup."Supplier Telephone", NRSSetup."Supplier Business Desc.", NRSSetup."Supplier Street",
-            NRSSetup."Supplier City", NRSSetup."Supplier Postal Zone", NRSSetup."Supplier LGA Code",
-            NRSSetup."Supplier State Code", NRSSetup."Supplier Country");
+            NRSSetup."Supplier City", NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
         Body.Add('accounting_supplier_party', SupplierParty);
 
         // ---- Customer party (required for B2B/B2G/G2B) ----
         BuildParty(CustomerParty, SalesInvHeader."Bill-to Name", Customer."NRS TIN", Customer."NRS Email",
             Customer."Phone No.", Customer."NRS Business Desc.", SalesInvHeader."Bill-to Address",
-            SalesInvHeader."Bill-to City", SalesInvHeader."Bill-to Post Code", Customer."NRS LGA Code",
-            Customer."NRS State Code", GetCustomerCountry(Customer, SalesInvHeader));
+            SalesInvHeader."Bill-to City", SalesInvHeader."Bill-to Post Code", GetCustomerCountry(Customer, SalesInvHeader));
         Body.Add('accounting_customer_party', CustomerParty);
 
         // ---- Tax total ----
@@ -252,7 +250,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('invoice_line', InvoiceLineArr);
     end;
 
-    local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; PostalZone: Text; Lga: Text; State: Text; Country: Text)
+    local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; PostalZone: Text; Country: Text)
     var
         Addr: JsonObject;
     begin
@@ -265,11 +263,10 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if Description <> '' then
             PartyObj.Add('business_description', Description);
 
+        // Per the sample request, postal_address carries only these four fields.
         Addr.Add('street_name', Street);
         Addr.Add('city_name', City);
         Addr.Add('postal_zone', PostalZone);
-        Addr.Add('lga', Lga);
-        Addr.Add('state', State);
         Addr.Add('country', Country);
         PartyObj.Add('postal_address', Addr);
     end;
