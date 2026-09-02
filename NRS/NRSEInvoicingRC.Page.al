@@ -1,4 +1,4 @@
-page 50394 "NRS E-Invoicing RC"
+page 50384 "NRS E-Invoicing RC"
 {
     Caption = 'NRS E-Invoicing';
     PageType = RoleCenter;
@@ -56,6 +56,14 @@ page 50394 "NRS E-Invoicing RC"
                     ToolTip = 'Configure NRS credentials and endpoint.';
                     RunObject = page "NRS Setup";
                     Image = Setup;
+                }
+                action(ItemCategoryMapAction)
+                {
+                    ApplicationArea = All;
+                    Caption = 'NRS Item Category Mapping';
+                    ToolTip = 'Map each BC item category (TRUCK, SPARE PART, LUBRICANT, ...) to its HSN/ISIC classification.';
+                    RunObject = page "NRS Item Category Map";
+                    Image = ItemGroup;
                 }
             }
         }
