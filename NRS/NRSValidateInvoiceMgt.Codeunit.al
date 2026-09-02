@@ -12,7 +12,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     //   tax_inclusive_amount   <- Header."Amount Including VAT"
     //   tax_amount             <- Amount Including VAT - Amount
     //   invoice_line[*]        <- Sales Invoice Line (item name, price, qty, discounts, amount)
-    //   hsn/product/isic/svc   <- Item NRS fields
+    //   hsn/product/isic/svc   <- NRS Item Category Mapping (keyed by the item's Item Category Code)
     // Amounts and codes with no standard BC source are configured in NRS Setup / Customer / Item.
 
     Permissions = tabledata "NRS IRN Log" = RIMD,
@@ -20,6 +20,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
                   tabledata "Sales Invoice Line" = R,
                   tabledata Customer = R,
                   tabledata Item = R,
+                  tabledata "NRS Item Category Map" = R,
                   tabledata "Unit of Measure" = R;
 
     var
@@ -263,7 +264,8 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if Description <> '' then
             PartyObj.Add('business_description', Description);
 
-        // Per the sample request, postal_address carries only these four fields.
+        // Per the working NRS request, postal_address carries only these four fields
+        // (lga/state are omitted - the server rejects them when present-but-empty).
         Addr.Add('street_name', Street);
         Addr.Add('city_name', City);
         Addr.Add('postal_zone', PostalZone);
@@ -332,6 +334,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             SubtotalObj.Add('taxable_amount', Taxable);
             SubtotalObj.Add('tax_amount', Vat);
             SubtotalObj.Add('tax_category', CategoryObj);
+            SubtotalObj.Add('tax_category_percent', Rate);
             SubtotalArr.Add(SubtotalObj);
         end;
 
@@ -346,6 +349,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     var
         SalesInvLine: Record "Sales Invoice Line";
         Item: Record Item;
+        ItemCategoryMap: Record "NRS Item Category Map";
         UnitOfMeasure: Record "Unit of Measure";
         LineObj: JsonObject;
         ItemObj: JsonObject;
@@ -398,24 +402,27 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             LineObj.Add('item', ItemObj);
             LineObj.Add('price', PriceObj);
 
-            // Resolve classification: item value first, otherwise the setup default.
+            // Resolve classification from the item's BC Item Category (via the NRS Item Category
+            // Mapping), otherwise fall back to the setup default. This keeps classification off the
+            // individual item cards - one row per category (TRUCK, SPARE PART, LUBRICANT, ...).
             HsnCode := NRSSetup."Def. HSN Code";
             ProductCategory := NRSSetup."Def. Product Category";
             IsicCode := NRSSetup."Def. ISIC Code";
             ServiceCategory := NRSSetup."Def. Service Category";
             ItemHasService := false;
-            if (SalesInvLine.Type = SalesInvLine.Type::Item) and Item.Get(SalesInvLine."No.") then begin
-                if Item."NRS HSN Code" <> '' then
-                    HsnCode := Item."NRS HSN Code";
-                if Item."NRS Product Category" <> '' then
-                    ProductCategory := Item."NRS Product Category";
-                if Item."NRS ISIC Code" <> 0 then
-                    IsicCode := Item."NRS ISIC Code";
-                if Item."NRS Service Category" <> '' then begin
-                    ServiceCategory := Item."NRS Service Category";
-                    ItemHasService := true;
+            if (SalesInvLine.Type = SalesInvLine.Type::Item) and Item.Get(SalesInvLine."No.") then
+                if (Item."Item Category Code" <> '') and ItemCategoryMap.Get(Item."Item Category Code") then begin
+                    if ItemCategoryMap."HSN Code" <> '' then
+                        HsnCode := ItemCategoryMap."HSN Code";
+                    if ItemCategoryMap."Product Category" <> '' then
+                        ProductCategory := ItemCategoryMap."Product Category";
+                    if ItemCategoryMap."ISIC Code" <> 0 then
+                        IsicCode := ItemCategoryMap."ISIC Code";
+                    if ItemCategoryMap."Service Category" <> '' then begin
+                        ServiceCategory := ItemCategoryMap."Service Category";
+                        ItemHasService := true;
+                    end;
                 end;
-            end;
 
             // Goods (Item, G/L, etc.) carry HSN + product category.
             // Services (Resource lines - e.g. maintenance) carry ISIC + service category.
