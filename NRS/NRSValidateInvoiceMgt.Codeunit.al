@@ -263,7 +263,8 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if Description <> '' then
             PartyObj.Add('business_description', Description);
 
-        // Per the sample request, postal_address carries only these four fields.
+        // Per the working NRS request, postal_address carries only these four fields
+        // (lga/state are omitted - the server rejects them when present-but-empty).
         Addr.Add('street_name', Street);
         Addr.Add('city_name', City);
         Addr.Add('postal_zone', PostalZone);
@@ -332,6 +333,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             SubtotalObj.Add('taxable_amount', Taxable);
             SubtotalObj.Add('tax_amount', Vat);
             SubtotalObj.Add('tax_category', CategoryObj);
+            SubtotalObj.Add('tax_category_percent', Rate);
             SubtotalArr.Add(SubtotalObj);
         end;
 
