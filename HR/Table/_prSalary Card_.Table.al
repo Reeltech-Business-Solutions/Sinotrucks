@@ -233,6 +233,10 @@ table 54535 "prSalary Card"
             CalcFormula = Lookup("HR Employees"."Date Of Birth" WHERE("No." = FIELD("Employee Code")));
             FieldClass = FlowField;
         }
+        field(326; "Rent Relief"; Decimal)
+        {
+
+        }
     }
     keys
     {
