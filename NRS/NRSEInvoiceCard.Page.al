@@ -1,4 +1,4 @@
-page 50187 "NRS E-Invoice Card"
+page 50387 "NRS E-Invoice Card"
 {
     Caption = 'NRS E-Invoice';
     PageType = Document;
