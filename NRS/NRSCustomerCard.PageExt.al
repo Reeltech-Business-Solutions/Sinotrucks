@@ -28,6 +28,16 @@ pageextension 50182 "NRS Customer Card" extends "Customer Card"
                     ApplicationArea = All;
                     ToolTip = 'Specifies a short description of the customer business.';
                 }
+                field("NRS LGA Code"; Rec."NRS LGA Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the customer Local Government Area (e.g. NG-FC-AML). Required by the Validate endpoint.';
+                }
+                field("NRS State Code"; Rec."NRS State Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the customer State (e.g. NG-FC). Required by the Validate endpoint.';
+                }
                 field("NRS Country Code"; Rec."NRS Country Code")
                 {
                     ApplicationArea = All;

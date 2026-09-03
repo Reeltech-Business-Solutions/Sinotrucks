@@ -156,6 +156,17 @@ table 50180 "NRS Setup"
             Caption = 'Default Service Category';
             DataClassification = CustomerContent;
         }
+        // ---- Resource line classification (Resource-type lines are sent as goods with this HSN) ----
+        field(52; "Def. Resource HSN Code"; Text[30])
+        {
+            Caption = 'Default Resource HSN Code';
+            DataClassification = CustomerContent;
+        }
+        field(53; "Def. Resource Product Category"; Text[100])
+        {
+            Caption = 'Default Resource Product Category';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys
@@ -278,6 +289,9 @@ table 50180 "NRS Setup"
         TestField("Supplier Email");
         TestField("Supplier Street");
         TestField("Supplier City");
+        TestField("Supplier LGA Code");
+        TestField("Supplier State Code");
+        TestField("Supplier Postal Zone");
         TestField("Supplier Country");
         TestField("Def. Invoice Type Code");
         TestField("Def. Document Currency");

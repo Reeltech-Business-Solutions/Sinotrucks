@@ -1,4 +1,4 @@
-page 50287 "NRS E-Invoice Card"
+page 50387 "NRS E-Invoice Card"
 {
     Caption = 'NRS E-Invoice';
     PageType = Document;
@@ -118,7 +118,20 @@ page 50287 "NRS E-Invoice Card"
                 {
                     ApplicationArea = All;
                     Editable = false;
-                    ToolTip = 'Specifies the validation message from NRS.';
+                    ToolTip = 'Specifies the validation message from NRS, including the specific fields it rejected.';
+                }
+                field("Error Message"; Rec."Error Message")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    MultiLine = true;
+                    ToolTip = 'Specifies the full raw response body from NRS when a call fails. Read this for the exact validation errors.';
+                }
+                field("HTTP Status Code"; Rec."HTTP Status Code")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies the HTTP status code returned by NRS (e.g. 200 = OK, 400 = validation error).';
                 }
                 field("Generated At"; Rec."Generated At")
                 {

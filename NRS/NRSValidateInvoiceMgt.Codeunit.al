@@ -226,13 +226,20 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         // ---- Supplier party (required) ----
         BuildParty(SupplierParty, NRSSetup."Supplier Name", NRSSetup."Supplier TIN", NRSSetup."Supplier Email",
             NRSSetup."Supplier Telephone", NRSSetup."Supplier Business Desc.", NRSSetup."Supplier Street",
-            NRSSetup."Supplier City", NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
+            NRSSetup."Supplier City", NRSSetup."Supplier LGA Code", NRSSetup."Supplier State Code",
+            NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
         Body.Add('accounting_supplier_party', SupplierParty);
 
         // ---- Customer party (required for B2B/B2G/G2B) ----
+        // The posted invoice's bill-to address is frozen at posting time; where a field was blank
+        // then, fall back to the customer master so filling the Customer card fixes past invoices too.
         BuildParty(CustomerParty, SalesInvHeader."Bill-to Name", Customer."NRS TIN", Customer."NRS Email",
-            Customer."Phone No.", Customer."NRS Business Desc.", SalesInvHeader."Bill-to Address",
-            SalesInvHeader."Bill-to City", SalesInvHeader."Bill-to Post Code", GetCustomerCountry(Customer, SalesInvHeader));
+            Customer."Phone No.", Customer."NRS Business Desc.",
+            CustAddrValue(SalesInvHeader."Bill-to Address", Customer.Address),
+            CustAddrValue(SalesInvHeader."Bill-to City", Customer.City),
+            Customer."NRS LGA Code", Customer."NRS State Code",
+            CustAddrValue(SalesInvHeader."Bill-to Post Code", Customer."Post Code"),
+            GetCustomerCountry(Customer, SalesInvHeader));
         Body.Add('accounting_customer_party', CustomerParty);
 
         // ---- Tax total ----
@@ -251,7 +258,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('invoice_line', InvoiceLineArr);
     end;
 
-    local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; PostalZone: Text; Country: Text)
+    local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; Lga: Text; State: Text; PostalZone: Text; Country: Text)
     var
         Addr: JsonObject;
     begin
@@ -264,10 +271,12 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if Description <> '' then
             PartyObj.Add('business_description', Description);
 
-        // Per the working NRS request, postal_address carries only these four fields
-        // (lga/state are omitted - the server rejects them when present-but-empty).
+        // postal_address per the NRS documentation: street_name, city_name, lga, state,
+        // postal_zone, country - all required by the Validate endpoint.
         Addr.Add('street_name', Street);
         Addr.Add('city_name', City);
+        Addr.Add('lga', Lga);
+        Addr.Add('state', State);
         Addr.Add('postal_zone', PostalZone);
         Addr.Add('country', Country);
         PartyObj.Add('postal_address', Addr);
@@ -284,6 +293,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         TotalObj: JsonObject;
         SubtotalObj: JsonObject;
         CategoryObj: JsonObject;
+        SchemeObj: JsonObject;
         SubtotalArr: JsonArray;
         TaxableByRate: Dictionary of [Decimal, Decimal];
         VatByRate: Dictionary of [Decimal, Decimal];
@@ -326,9 +336,13 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             end else
                 CategoryId := ZeroVatTok;
 
+            Clear(SchemeObj);
+            SchemeObj.Add('id', 'VAT');
+
             Clear(CategoryObj);
             CategoryObj.Add('id', CategoryId);
             CategoryObj.Add('percent', Rate);
+            CategoryObj.Add('tax_scheme', SchemeObj);
 
             Clear(SubtotalObj);
             SubtotalObj.Add('taxable_amount', Taxable);
@@ -360,7 +374,6 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         ProductCategory: Text;
         ServiceCategory: Text;
         IsicCode: Integer;
-        IsService: Boolean;
         ItemHasService: Boolean;
     begin
         Clear(Arr);
@@ -402,39 +415,47 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             LineObj.Add('item', ItemObj);
             LineObj.Add('price', PriceObj);
 
-            // Resolve classification from the item's BC Item Category (via the NRS Item Category
-            // Mapping), otherwise fall back to the setup default. This keeps classification off the
-            // individual item cards - one row per category (TRUCK, SPARE PART, LUBRICANT, ...).
+            // Resolve classification. Items take it from their BC Item Category (via the NRS Item
+            // Category Mapping); Resource-type lines are classified as goods using the dedicated
+            // resource HSN default; anything unmatched falls back to the general setup defaults.
             HsnCode := NRSSetup."Def. HSN Code";
             ProductCategory := NRSSetup."Def. Product Category";
             IsicCode := NRSSetup."Def. ISIC Code";
             ServiceCategory := NRSSetup."Def. Service Category";
             ItemHasService := false;
-            if (SalesInvLine.Type = SalesInvLine.Type::Item) and Item.Get(SalesInvLine."No.") then
-                if (Item."Item Category Code" <> '') and ItemCategoryMap.Get(Item."Item Category Code") then begin
-                    if ItemCategoryMap."HSN Code" <> '' then
-                        HsnCode := ItemCategoryMap."HSN Code";
-                    if ItemCategoryMap."Product Category" <> '' then
-                        ProductCategory := ItemCategoryMap."Product Category";
-                    if ItemCategoryMap."ISIC Code" <> 0 then
-                        IsicCode := ItemCategoryMap."ISIC Code";
-                    if ItemCategoryMap."Service Category" <> '' then begin
-                        ServiceCategory := ItemCategoryMap."Service Category";
-                        ItemHasService := true;
+
+            case SalesInvLine.Type of
+                SalesInvLine.Type::Resource:
+                    begin
+                        // Resources (e.g. BREAK-IN SERVICE) are sent as goods with an HSN code.
+                        if NRSSetup."Def. Resource HSN Code" <> '' then
+                            HsnCode := NRSSetup."Def. Resource HSN Code";
+                        if NRSSetup."Def. Resource Product Category" <> '' then
+                            ProductCategory := NRSSetup."Def. Resource Product Category";
                     end;
-                end;
+                SalesInvLine.Type::Item:
+                    if Item.Get(SalesInvLine."No.") then
+                        if (Item."Item Category Code" <> '') and ItemCategoryMap.Get(Item."Item Category Code") then begin
+                            if ItemCategoryMap."HSN Code" <> '' then
+                                HsnCode := ItemCategoryMap."HSN Code";
+                            if ItemCategoryMap."Product Category" <> '' then
+                                ProductCategory := ItemCategoryMap."Product Category";
+                            if ItemCategoryMap."ISIC Code" <> 0 then
+                                IsicCode := ItemCategoryMap."ISIC Code";
+                            if ItemCategoryMap."Service Category" <> '' then begin
+                                ServiceCategory := ItemCategoryMap."Service Category";
+                                ItemHasService := true;
+                            end;
+                        end;
+            end;
 
-            // Goods (Item, G/L, etc.) carry HSN + product category.
-            // Services (Resource lines - e.g. maintenance) carry ISIC + service category.
-            // NRS only requires service_category when isic_code is present, so the pair is sent
-            // for service lines only (or items you've explicitly tagged with a service category).
-            IsService := SalesInvLine.Type = SalesInvLine.Type::Resource;
-
+            // Emit HSN + product category for goods (now including Resource lines). Only send the
+            // isic/service pair for an item you've explicitly tagged with a service category.
             if HsnCode <> '' then
                 LineObj.Add('hsn_code', HsnCode);
             if ProductCategory <> '' then
                 LineObj.Add('product_category', ProductCategory);
-            if (IsService or ItemHasService) and (ServiceCategory <> '') then begin
+            if ItemHasService and (ServiceCategory <> '') then begin
                 LineObj.Add('isic_code', IsicCode);
                 LineObj.Add('service_category', ServiceCategory);
             end;
@@ -495,6 +516,14 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         exit('');
     end;
 
+    /// <summary>Returns the posted (bill-to) address value, falling back to the customer master when blank.</summary>
+    local procedure CustAddrValue(PostedValue: Text; MasterValue: Text): Text
+    begin
+        if PostedValue <> '' then
+            exit(PostedValue);
+        exit(MasterValue);
+    end;
+
     local procedure GetCustomerCountry(Customer: Record Customer; SalesInvHeader: Record "Sales Invoice Header"): Text
     begin
         if Customer."NRS Country Code" <> '' then
@@ -524,11 +553,100 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     var
         Json: JsonObject;
         Tok: JsonToken;
+        BaseMsg: Text;
+        Details: Text;
     begin
-        if Json.ReadFrom(ResponseText) then
-            if Json.Get('message', Tok) then
-                if not Tok.AsValue().IsNull() then
-                    exit(Tok.AsValue().AsText());
+        if not Json.ReadFrom(ResponseText) then
+            exit(CopyStr(ResponseText, 1, 250));
+
+        // Top-level human message (e.g. "Validation error").
+        if Json.Get('message', Tok) then
+            if not Tok.AsValue().IsNull() then
+                BaseMsg := Tok.AsValue().AsText();
+
+        // NRS returns the specific field problems in an "errors" collection, sometimes
+        // nested under "data". Pull those out so the log names the actual offending fields.
+        Details := ExtractErrorDetails(Json);
+        if (Details = '') then
+            if Json.Get('data', Tok) then
+                if Tok.IsObject() then
+                    Details := ExtractErrorDetails(Tok.AsObject());
+
+        if Details <> '' then begin
+            if BaseMsg <> '' then
+                exit(CopyStr(BaseMsg + ': ' + Details, 1, 250));
+            exit(CopyStr(Details, 1, 250));
+        end;
+
+        if BaseMsg <> '' then
+            exit(BaseMsg);
         exit(CopyStr(ResponseText, 1, 250));
+    end;
+
+    /// <summary>Flattens an "errors" collection (object of field->messages, or an array) into a readable string.</summary>
+    local procedure ExtractErrorDetails(Obj: JsonObject): Text
+    var
+        ErrTok: JsonToken;
+        ItemTok: JsonToken;
+        MsgTok: JsonToken;
+        ErrObj: JsonObject;
+        ErrArr: JsonArray;
+        FieldKeys: List of [Text];
+        FieldKey: Text;
+        Result: Text;
+    begin
+        if not Obj.Get('errors', ErrTok) then
+            exit('');
+
+        // Shape A: { "errors": { "field": ["msg", ...], ... } }
+        if ErrTok.IsObject() then begin
+            ErrObj := ErrTok.AsObject();
+            FieldKeys := ErrObj.Keys();
+            foreach FieldKey in FieldKeys do begin
+                ErrObj.Get(FieldKey, ItemTok);
+                if Result <> '' then
+                    Result += '; ';
+                Result += FieldKey + ' - ' + TokenToText(ItemTok);
+            end;
+            exit(Result);
+        end;
+
+        // Shape B: { "errors": [ "msg", ... ] } or [ { "field":.., "message":.. }, ... ]
+        if ErrTok.IsArray() then begin
+            ErrArr := ErrTok.AsArray();
+            foreach ItemTok in ErrArr do begin
+                if Result <> '' then
+                    Result += '; ';
+                if ItemTok.IsObject() and ItemTok.AsObject().Get('message', MsgTok) then
+                    Result += MsgTok.AsValue().AsText()
+                else
+                    Result += TokenToText(ItemTok);
+            end;
+            exit(Result);
+        end;
+
+        exit('');
+    end;
+
+    /// <summary>Renders a JSON token (value, or array of values) as plain text.</summary>
+    local procedure TokenToText(Tok: JsonToken): Text
+    var
+        Arr: JsonArray;
+        ElemTok: JsonToken;
+        Result: Text;
+    begin
+        if Tok.IsValue() then
+            exit(Tok.AsValue().AsText());
+        if Tok.IsArray() then begin
+            Arr := Tok.AsArray();
+            foreach ElemTok in Arr do begin
+                if Result <> '' then
+                    Result += ', ';
+                if ElemTok.IsValue() then
+                    Result += ElemTok.AsValue().AsText();
+            end;
+            exit(Result);
+        end;
+        exit('');
     end;
 }

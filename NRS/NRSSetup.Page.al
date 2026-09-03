@@ -125,10 +125,20 @@ page 50380 "NRS Setup"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the supplier city.';
                 }
+                field("Supplier LGA Code"; Rec."Supplier LGA Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the supplier Local Government Area (e.g. NG-LA-LIS). Required by the Validate endpoint.';
+                }
+                field("Supplier State Code"; Rec."Supplier State Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the supplier State (e.g. NG-LA). Required by the Validate endpoint.';
+                }
                 field("Supplier Postal Zone"; Rec."Supplier Postal Zone")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the supplier postal/ZIP code.';
+                    ToolTip = 'Specifies the supplier postal/ZIP code. Required by the Validate endpoint.';
                 }
                 field("Supplier Country"; Rec."Supplier Country")
                 {
@@ -194,6 +204,16 @@ page 50380 "NRS Setup"
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies the default service category (required by NRS whenever an ISIC code is sent).';
+                }
+                field("Def. Resource HSN Code"; Rec."Def. Resource HSN Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the HSN code sent for Resource-type lines (e.g. BREAK-IN SERVICE). Resources are classified as goods with this code.';
+                }
+                field("Def. Resource Product Category"; Rec."Def. Resource Product Category")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the product category sent for Resource-type lines.';
                 }
             }
         }
