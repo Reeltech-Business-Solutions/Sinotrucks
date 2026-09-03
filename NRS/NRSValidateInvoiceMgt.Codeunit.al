@@ -229,7 +229,8 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         // ---- Supplier party (required) ----
         BuildParty(SupplierParty, NRSSetup."Supplier Name", NRSSetup."Supplier TIN", NRSSetup."Supplier Email",
             NRSSetup."Supplier Telephone", NRSSetup."Supplier Business Desc.", NRSSetup."Supplier Street",
-            NRSSetup."Supplier City", NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
+            NRSSetup."Supplier City", NRSSetup."Supplier LGA Code", NRSSetup."Supplier State Code",
+            NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
         Body.Add('accounting_supplier_party', SupplierParty);
 
         // ---- Customer party (required for B2B/B2G/G2B) ----
@@ -239,6 +240,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             Customer."Phone No.", Customer."NRS Business Desc.",
             CustAddrValue(SalesInvHeader."Bill-to Address", Customer.Address),
             CustAddrValue(SalesInvHeader."Bill-to City", Customer.City),
+            Customer."NRS LGA Code", Customer."NRS State Code",
             CustAddrValue(SalesInvHeader."Bill-to Post Code", Customer."Post Code"),
             GetCustomerCountry(Customer, SalesInvHeader));
         Body.Add('accounting_customer_party', CustomerParty);
@@ -259,7 +261,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('invoice_line', InvoiceLineArr);
     end;
 
-    local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; PostalZone: Text; Country: Text)
+    local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; Lga: Text; State: Text; PostalZone: Text; Country: Text)
     var
         Addr: JsonObject;
     begin
@@ -272,10 +274,13 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if Description <> '' then
             PartyObj.Add('business_description', Description);
 
-        // postal_address per the Sign endpoint schema: street_name, city_name, postal_zone,
-        // country only (the Sign endpoint does not use lga/state).
+        // postal_address: street_name, city_name, lga, state, postal_zone, country. The server
+        // (validateInvoiceRequestV3, used by BOTH /validate and /sign) requires lga and state -
+        // it rejects them as "cannot be empty" when missing, regardless of the doc examples.
         Addr.Add('street_name', Street);
         Addr.Add('city_name', City);
+        Addr.Add('lga', Lga);
+        Addr.Add('state', State);
         Addr.Add('postal_zone', PostalZone);
         Addr.Add('country', Country);
         PartyObj.Add('postal_address', Addr);

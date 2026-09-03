@@ -289,6 +289,8 @@ table 50180 "NRS Setup"
         TestField("Supplier Email");
         TestField("Supplier Street");
         TestField("Supplier City");
+        TestField("Supplier LGA Code");
+        TestField("Supplier State Code");
         TestField("Supplier Postal Zone");
         TestField("Supplier Country");
         TestField("Def. Invoice Type Code");
