@@ -109,6 +109,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         IRNLog."Validation Message" := CopyStr(RespMsg, 1, MaxStrLen(IRNLog."Validation Message"));
         IRNLog."Validated At" := CurrentDateTime();
         IRNLog."HTTP Status Code" := HttpStatusCode;
+        IRNLog.SetRequestBody(RawBody);
         if NewStatus = NewStatus::Failed then
             IRNLog."Error Message" := CopyStr(ResponseText, 1, MaxStrLen(IRNLog."Error Message"));
         IRNLog.Modify(true);
@@ -218,6 +219,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('business_id', NRSSetup."Business ID");
         Body.Add('irn', SalesInvHeader."NRS IRN");
         Body.Add('issue_date', Format(SalesInvHeader."Posting Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+        Body.Add('issue_time', Format(DT2Time(CurrentDateTime()), 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'));
         if SalesInvHeader."Due Date" <> 0D then
             Body.Add('due_date', Format(SalesInvHeader."Due Date", 0, '<Year4>-<Month,2>-<Day,2>'));
         Body.Add('invoice_type_code', NRSSetup."Def. Invoice Type Code");

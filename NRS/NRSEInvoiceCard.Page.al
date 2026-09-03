@@ -1,4 +1,4 @@
-page 50387 "NRS E-Invoice Card"
+page 50187 "NRS E-Invoice Card"
 {
     Caption = 'NRS E-Invoice';
     PageType = Document;
@@ -207,6 +207,33 @@ page 50387 "NRS E-Invoice Card"
                     if SalesInvHeader.Get(Rec."Document No.") then
                         ValidateMgt.ValidateForInvoice(SalesInvHeader);
                     CurrPage.Update(false);
+                end;
+            }
+            action(DownloadRequestJson)
+            {
+                ApplicationArea = All;
+                Caption = 'Download Request JSON';
+                ToolTip = 'Downloads the exact JSON payload last sent to NRS for this invoice (for troubleshooting).';
+                Image = Export;
+
+                trigger OnAction()
+                var
+                    TempBlob: Codeunit "Temp Blob";
+                    OutStr: OutStream;
+                    InStr: InStream;
+                    BodyText: Text;
+                    FileName: Text;
+                begin
+                    BodyText := Rec.GetRequestBody();
+                    if BodyText = '' then begin
+                        Message('No request has been captured yet. Sign or validate this invoice first, then try again.');
+                        exit;
+                    end;
+                    TempBlob.CreateOutStream(OutStr, TextEncoding::UTF8);
+                    OutStr.Write(BodyText);
+                    TempBlob.CreateInStream(InStr, TextEncoding::UTF8);
+                    FileName := 'NRS-Request-' + Rec."Document No." + '.json';
+                    DownloadFromStream(InStr, '', '', '', FileName);
                 end;
             }
             action(ViewReport)

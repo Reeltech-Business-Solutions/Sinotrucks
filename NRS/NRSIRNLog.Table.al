@@ -99,6 +99,10 @@ table 50181 "NRS IRN Log"
         {
             Caption = 'Validated At';
         }
+        field(33; "Request Body"; Blob)
+        {
+            Caption = 'Request Body';
+        }
     }
 
     keys
@@ -153,6 +157,34 @@ table 50181 "NRS IRN Log"
         "QR Code Base64".CreateInStream(InStr, TextEncoding::UTF8);
         InStr.ReadText(Result);
         exit(Result);
+    end;
+
+    /// <summary>Stores the exact JSON request body sent to NRS (for diagnostics).</summary>
+    procedure SetRequestBody(BodyText: Text)
+    var
+        OutStr: OutStream;
+    begin
+        Clear("Request Body");
+        if BodyText = '' then
+            exit;
+        "Request Body".CreateOutStream(OutStr, TextEncoding::UTF8);
+        OutStr.Write(BodyText);
+    end;
+
+    /// <summary>Reads back the last JSON request body sent to NRS.</summary>
+    procedure GetRequestBody() Result: Text
+    var
+        InStr: InStream;
+        Line: Text;
+    begin
+        CalcFields("Request Body");
+        if not "Request Body".HasValue() then
+            exit('');
+        "Request Body".CreateInStream(InStr, TextEncoding::UTF8);
+        while not InStr.EOS() do begin
+            InStr.ReadText(Line);
+            Result += Line;
+        end;
     end;
 
     /// <summary>Pushes a manually changed status/IRN back onto the linked posted sales invoice.</summary>
