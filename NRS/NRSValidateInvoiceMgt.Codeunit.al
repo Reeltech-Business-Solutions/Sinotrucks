@@ -24,7 +24,10 @@ codeunit 50181 "NRS Validate Invoice Mgt."
                   tabledata "Unit of Measure" = R;
 
     var
-        ValidatePathTok: Label 'validate', Locked = true;
+        // The 'sign' endpoint validates the content, signs and reports the invoice to NRS.
+        // (The 'validate' endpoint only checks compliance and uses a different schema - lga/state
+        // and tax_scheme - which 'sign' does not.)
+        ValidatePathTok: Label 'sign', Locked = true;
         ZeroVatTok: Label 'ZERO_VAT', Locked = true;
         ConnErrTxt: Label 'Could not reach the NRS e-invoicing service. Check network access / firewall.';
         NothingSelectedTxt: Label 'No invoices were selected.';
@@ -226,8 +229,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         // ---- Supplier party (required) ----
         BuildParty(SupplierParty, NRSSetup."Supplier Name", NRSSetup."Supplier TIN", NRSSetup."Supplier Email",
             NRSSetup."Supplier Telephone", NRSSetup."Supplier Business Desc.", NRSSetup."Supplier Street",
-            NRSSetup."Supplier City", NRSSetup."Supplier LGA Code", NRSSetup."Supplier State Code",
-            NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
+            NRSSetup."Supplier City", NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
         Body.Add('accounting_supplier_party', SupplierParty);
 
         // ---- Customer party (required for B2B/B2G/G2B) ----
@@ -237,7 +239,6 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             Customer."Phone No.", Customer."NRS Business Desc.",
             CustAddrValue(SalesInvHeader."Bill-to Address", Customer.Address),
             CustAddrValue(SalesInvHeader."Bill-to City", Customer.City),
-            Customer."NRS LGA Code", Customer."NRS State Code",
             CustAddrValue(SalesInvHeader."Bill-to Post Code", Customer."Post Code"),
             GetCustomerCountry(Customer, SalesInvHeader));
         Body.Add('accounting_customer_party', CustomerParty);
@@ -258,7 +259,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('invoice_line', InvoiceLineArr);
     end;
 
-    local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; Lga: Text; State: Text; PostalZone: Text; Country: Text)
+    local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; PostalZone: Text; Country: Text)
     var
         Addr: JsonObject;
     begin
@@ -271,12 +272,10 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if Description <> '' then
             PartyObj.Add('business_description', Description);
 
-        // postal_address per the NRS documentation: street_name, city_name, lga, state,
-        // postal_zone, country - all required by the Validate endpoint.
+        // postal_address per the Sign endpoint schema: street_name, city_name, postal_zone,
+        // country only (the Sign endpoint does not use lga/state).
         Addr.Add('street_name', Street);
         Addr.Add('city_name', City);
-        Addr.Add('lga', Lga);
-        Addr.Add('state', State);
         Addr.Add('postal_zone', PostalZone);
         Addr.Add('country', Country);
         PartyObj.Add('postal_address', Addr);
@@ -293,7 +292,6 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         TotalObj: JsonObject;
         SubtotalObj: JsonObject;
         CategoryObj: JsonObject;
-        SchemeObj: JsonObject;
         SubtotalArr: JsonArray;
         TaxableByRate: Dictionary of [Decimal, Decimal];
         VatByRate: Dictionary of [Decimal, Decimal];
@@ -336,13 +334,9 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             end else
                 CategoryId := ZeroVatTok;
 
-            Clear(SchemeObj);
-            SchemeObj.Add('id', 'VAT');
-
             Clear(CategoryObj);
             CategoryObj.Add('id', CategoryId);
             CategoryObj.Add('percent', Rate);
-            CategoryObj.Add('tax_scheme', SchemeObj);
 
             Clear(SubtotalObj);
             SubtotalObj.Add('taxable_amount', Taxable);
