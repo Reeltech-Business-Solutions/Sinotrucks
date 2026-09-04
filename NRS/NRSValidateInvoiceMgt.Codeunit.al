@@ -219,7 +219,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('business_id', NRSSetup."Business ID");
         Body.Add('irn', SalesInvHeader."NRS IRN");
         Body.Add('issue_date', Format(SalesInvHeader."Posting Date", 0, '<Year4>-<Month,2>-<Day,2>'));
-        Body.Add('issue_time', Format(DT2Time(CurrentDateTime()), 0, '<Hours24,2>:<Minutes,2>:<Seconds,2>'));
+        Body.Add('issue_time', BuildIssueTime());
         if SalesInvHeader."Due Date" <> 0D then
             Body.Add('due_date', Format(SalesInvHeader."Due Date", 0, '<Year4>-<Month,2>-<Day,2>'));
         Body.Add('invoice_type_code', NRSSetup."Def. Invoice Type Code");
@@ -515,6 +515,26 @@ codeunit 50181 "NRS Validate Invoice Mgt."
                 exit('C62');
         end;
         exit('');
+    end;
+
+    /// <summary>Builds issue_time as a zero-padded HH:MM:SS string (NRS/Java LocalTime requires a 2-digit hour).</summary>
+    local procedure BuildIssueTime(): Text
+    var
+        T: Time;
+    begin
+        T := DT2Time(CurrentDateTime());
+        exit(Pad2(Format(T, 0, '<Hours24>')) + ':' +
+             Pad2(Format(T, 0, '<Minutes>')) + ':' +
+             Pad2(Format(T, 0, '<Seconds>')));
+    end;
+
+    /// <summary>Left-pads a numeric text to two digits with a leading zero.</summary>
+    local procedure Pad2(Value: Text): Text
+    begin
+        Value := DelChr(Value, '=', ' ');
+        if StrLen(Value) >= 2 then
+            exit(Value);
+        exit('0' + Value);
     end;
 
     /// <summary>Returns the posted (bill-to) address value, falling back to the customer master when blank.</summary>
