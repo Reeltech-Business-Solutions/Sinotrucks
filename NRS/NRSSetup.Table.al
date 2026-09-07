@@ -86,15 +86,35 @@ table 50180 "NRS Setup"
             Caption = 'Supplier Postal Zone';
             DataClassification = CustomerContent;
         }
-        field(38; "Supplier LGA Code"; Text[20])
+        field(38; "Supplier LGA Code"; Code[20])
         {
             Caption = 'Supplier LGA Code';
             DataClassification = CustomerContent;
+            // The lookup is filtered to the chosen State, so only that State's LGAs show.
+            TableRelation = "NRS LGA".Code where("State Code" = field("Supplier State Code"));
+
+            trigger OnValidate()
+            var
+                LGA: Record "NRS LGA";
+            begin
+                if ("Supplier LGA Code" <> '') and LGA.Get("Supplier LGA Code") then
+                    "Supplier State Code" := LGA."State Code";
+            end;
         }
-        field(39; "Supplier State Code"; Text[20])
+        field(39; "Supplier State Code"; Code[10])
         {
             Caption = 'Supplier State Code';
             DataClassification = CustomerContent;
+            TableRelation = "NRS State".Code;
+
+            trigger OnValidate()
+            var
+                LGA: Record "NRS LGA";
+            begin
+                if "Supplier LGA Code" <> '' then
+                    if LGA.Get("Supplier LGA Code") and (LGA."State Code" <> "Supplier State Code") then
+                        "Supplier LGA Code" := '';
+            end;
         }
         field(40; "Supplier Country"; Code[10])
         {

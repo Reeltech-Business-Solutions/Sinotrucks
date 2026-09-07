@@ -103,6 +103,14 @@ table 50181 "NRS IRN Log"
         {
             Caption = 'Request Body';
         }
+        field(34; "Payment Status"; Text[20])
+        {
+            Caption = 'Payment Status';
+        }
+        field(35; "Payment Updated At"; DateTime)
+        {
+            Caption = 'Payment Updated At';
+        }
     }
 
     keys

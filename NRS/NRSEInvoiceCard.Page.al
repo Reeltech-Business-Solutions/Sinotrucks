@@ -96,7 +96,8 @@ page 50387 "NRS E-Invoice Card"
                 field(Status; Rec.Status)
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the IRN status. You can override it here.';
+                    ToolTip = 'Specifies the IRN status. ';
+                    Editable = false;
 
                     trigger OnValidate()
                     begin
@@ -106,7 +107,8 @@ page 50387 "NRS E-Invoice Card"
                 field("Validation Status"; Rec."Validation Status")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the validation status. You can override it here.';
+                    ToolTip = 'Specifies the validation status. ';
+                    Editable = false;
                 }
                 field("Response Message"; Rec."Response Message")
                 {
@@ -138,6 +140,18 @@ page 50387 "NRS E-Invoice Card"
                     ApplicationArea = All;
                     Editable = false;
                     ToolTip = 'Specifies when the IRN was generated.';
+                }
+                field("Payment Status"; Rec."Payment Status")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies the payment status last reported to NRS (PAID, PARTIAL, REJECTED).';
+                }
+                field("Payment Updated At"; Rec."Payment Updated At")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies when the payment status was last reported to NRS.';
                 }
             }
         }
@@ -209,6 +223,31 @@ page 50387 "NRS E-Invoice Card"
                     CurrPage.Update(false);
                 end;
             }
+            action(UpdatePayment)
+            {
+                ApplicationArea = All;
+                Caption = 'Update Payment Status';
+                ToolTip = 'Reports a payment status change (PAID, REJECTED or PARTIAL) for this signed invoice to NRS.';
+                Image = Payment;
+                Promoted = true;
+                PromotedCategory = Process;
+                PromotedOnly = true;
+
+                trigger OnAction()
+                var
+                    EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+                    PayPage: Page "NRS Payment Update";
+                begin
+                    if Rec.IRN = '' then begin
+                        Message('Generate and sign this invoice before updating its payment status.');
+                        exit;
+                    end;
+                    if PayPage.RunModal() <> Action::OK then
+                        exit;
+                    EInvoiceMgt.UpdatePaymentStatus(Rec.IRN, PayPage.GetStatusText(), PayPage.GetAmount(), PayPage.GetReference());
+                    CurrPage.Update(false);
+                end;
+            }
             action(DownloadRequestJson)
             {
                 ApplicationArea = All;
@@ -236,24 +275,24 @@ page 50387 "NRS E-Invoice Card"
                     DownloadFromStream(InStr, '', '', '', FileName);
                 end;
             }
-            action(ViewReport)
-            {
-                ApplicationArea = All;
-                Caption = 'View Invoice Report';
-                ToolTip = 'Previews/prints the NRS e-invoice report, including the QR code.';
-                Image = Print;
-                Promoted = true;
-                PromotedCategory = Process;
-                PromotedOnly = true;
+            // action(ViewReport)
+            // {
+            //     ApplicationArea = All;
+            //     Caption = 'View Invoice Report';
+            //     ToolTip = 'Previews/prints the NRS e-invoice report, including the QR code.';
+            //     Image = Print;
+            //     Promoted = true;
+            //     PromotedCategory = Process;
+            //     PromotedOnly = true;
 
-                trigger OnAction()
-                var
-                    SalesInvHeader: Record "Sales Invoice Header";
-                begin
-                    SalesInvHeader.SetRange("No.", Rec."Document No.");
-                    Report.Run(Report::"NRS E-Invoice", true, false, SalesInvHeader);
-                end;
-            }
+            //     trigger OnAction()
+            //     var
+            //         SalesInvHeader: Record "Sales Invoice Header";
+            //     begin
+            //         SalesInvHeader.SetRange("No.", Rec."Document No.");
+            //         Report.Run(Report::"NRS E-Invoice", true, false, SalesInvHeader);
+            //     end;
+            // }
             action(OpenPostedInvoice)
             {
                 ApplicationArea = All;

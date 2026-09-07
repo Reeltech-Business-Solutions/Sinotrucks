@@ -8,40 +8,25 @@ pageextension 50182 "NRS Customer Card" extends "Customer Card"
             {
                 Caption = 'NRS E-Invoicing';
 
-                field("NRS TIN"; Rec."NRS TIN")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the customer TIN (or RN-<incorporation> in B2B when no TIN yet).';
-                }
-                field("NRS Email"; Rec."NRS Email")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the customer email used on the e-invoice.';
-                }
                 field("NRS Invoice Kind"; Rec."NRS Invoice Kind")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the invoice kind for this customer (B2B, B2C, B2G, G2B). Blank uses the setup default.';
+                    ToolTip = 'Specifies the invoice kind for this customer (B2B, B2C, B2G, G2B). Blank falls back to B2B.';
                 }
                 field("NRS Business Desc."; Rec."NRS Business Desc.")
                 {
                     ApplicationArea = All;
                     ToolTip = 'Specifies a short description of the customer business.';
                 }
-                field("NRS LGA Code"; Rec."NRS LGA Code")
-                {
-                    ApplicationArea = All;
-                    ToolTip = 'Specifies the customer Local Government Area (e.g. NG-FC-AML). Required by the Validate endpoint.';
-                }
                 field("NRS State Code"; Rec."NRS State Code")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the customer State (e.g. NG-FC). Required by the Validate endpoint.';
+                    ToolTip = 'Specifies the customer State - select from the NRS state list (e.g. NG-LA). Required by NRS.';
                 }
-                field("NRS Country Code"; Rec."NRS Country Code")
+                field("NRS LGA Code"; Rec."NRS LGA Code")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the country code for the customer address (e.g. NG).';
+                    ToolTip = 'Specifies the customer Local Government Area - select from the NRS LGA list (e.g. NG-LA-LIS). Required by NRS.';
                 }
             }
         }

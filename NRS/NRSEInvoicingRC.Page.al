@@ -65,6 +65,22 @@ page 50384 "NRS E-Invoicing RC"
                     RunObject = page "NRS Item Category Map";
                     Image = ItemGroup;
                 }
+                action(StatesAction)
+                {
+                    ApplicationArea = All;
+                    Caption = 'NRS States';
+                    ToolTip = 'View the NRS state codes used for supplier and customer addresses.';
+                    RunObject = page "NRS States";
+                    Image = Certificate;
+                }
+                action(LGAsAction)
+                {
+                    ApplicationArea = All;
+                    Caption = 'NRS LGAs';
+                    ToolTip = 'Maintain the NRS Local Government Area codes used for addresses.';
+                    RunObject = page "NRS LGAs";
+                    Image = Certificate;
+                }
             }
         }
         area(Processing)

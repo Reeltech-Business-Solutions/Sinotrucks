@@ -16,6 +16,10 @@ codeunit 50180 "NRS E-Invoice Mgt."
     var
         GenerateIrnPathTok: Label 'generate-irn', Locked = true;
         GenerateQrPathTok: Label 'generate-qr-code', Locked = true;
+        UpdatePaymentPathTok: Label 'update/', Locked = true;
+        NoIRNForPaymentTxt: Label 'This invoice has no IRN yet. Generate and sign it before updating its payment status.';
+        PaymentUpdatedTxt: Label 'Payment status updated to %1 with NRS.', Comment = '%1 = status';
+        PaymentFailedTxt: Label 'The payment status update failed: %1', Comment = '%1 = message';
         ConnErrTxt: Label 'Could not reach the NRS e-invoicing service. Check network access / firewall.';
         NothingSelectedTxt: Label 'No invoices were selected.';
         SummaryTxt: Label 'IRN generation complete.\n\nProcessed: %1\nGenerated: %2\nDuplicates (already issued): %3\nFailed: %4\nSkipped (already generated): %5', Comment = '%1..%5 are counts';
@@ -79,6 +83,7 @@ codeunit 50180 "NRS E-Invoice Mgt."
         IssuanceDate: Text;
         ResponseText: Text;
         IRN: Text;
+        ExistingIRN: Text;
         RespMsg: Text;
         HttpStatusCode: Integer;
         NewStatus: Enum "NRS IRN Status";
@@ -96,6 +101,7 @@ codeunit 50180 "NRS E-Invoice Mgt."
         Sent := SendGenerateIRN(NRSSetup, ClientSecret, InvoiceNumber, IssuanceDate, HttpStatusCode, ResponseText);
 
         GetOrInitLog(IRNLog, Database::"Sales Invoice Header", SalesInvHeader."No.");
+        ExistingIRN := IRNLog.IRN; // remember any IRN we already hold, so a duplicate never wipes it
         IRNLog."Posting Date" := SalesInvHeader."Posting Date";
         IRNLog."Invoice Number" := CopyStr(InvoiceNumber, 1, MaxStrLen(IRNLog."Invoice Number"));
         IRNLog."Business ID" := NRSSetup."Business ID";
@@ -111,6 +117,14 @@ codeunit 50180 "NRS E-Invoice Mgt."
             IRNLog."Response Message" := CopyStr(ConnErrTxt, 1, MaxStrLen(IRNLog."Response Message"));
         end else begin
             ParseResponse(ResponseText, HttpStatusCode, IRN, RespMsg, NewStatus);
+            // On a duplicate, NRS may not echo the IRN. Keep the one we already had, or, failing
+            // that, reconstruct the deterministic IRN so the invoice can still be signed.
+            if (NewStatus = NewStatus::Duplicate) and (IRN = '') then begin
+                if ExistingIRN <> '' then
+                    IRN := ExistingIRN
+                else
+                    IRN := SalesInvHeader."NRS IRN";
+            end;
             IRNLog.Status := NewStatus;
             IRNLog.IRN := CopyStr(IRN, 1, MaxStrLen(IRNLog.IRN));
             IRNLog."Response Message" := CopyStr(RespMsg, 1, MaxStrLen(IRNLog."Response Message"));
@@ -272,7 +286,7 @@ codeunit 50180 "NRS E-Invoice Mgt."
 
         HttpStatusCode := 0;
         ResponseText := '';
-        exit(TrySend(EndpointUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
+        exit(TrySend('POST', EndpointUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
     end;
 
     local procedure ParseQRResponse(ResponseText: Text; var QRBase64: Text; var RespMsg: Text)
@@ -305,6 +319,12 @@ codeunit 50180 "NRS E-Invoice Mgt."
     /// Shared by the IRN, QR and Validate flows.
     /// </summary>
     procedure SendSigned(ResourcePath: Text; RawBody: Text; var HttpStatusCode: Integer; var ResponseText: Text): Boolean
+    begin
+        exit(SendSignedMethod('POST', ResourcePath, RawBody, HttpStatusCode, ResponseText));
+    end;
+
+    /// <summary>As SendSigned, but with an explicit HTTP method (e.g. PATCH for the payment update endpoint).</summary>
+    procedure SendSignedMethod(HttpMethod: Text; ResourcePath: Text; RawBody: Text; var HttpStatusCode: Integer; var ResponseText: Text): Boolean
     var
         NRSSetup: Record "NRS Setup";
         Crypto: Codeunit "Cryptography Management";
@@ -321,7 +341,78 @@ codeunit 50180 "NRS E-Invoice Mgt."
         EndpointUrl := BuildUrl(NRSSetup."Base URL", ResourcePath);
         HttpStatusCode := 0;
         ResponseText := '';
-        exit(TrySend(EndpointUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
+        exit(TrySend(HttpMethod, EndpointUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
+    end;
+
+    // ----------------------------------------------------------------------------------
+    // Update payment status (PATCH .../invoice/update/{irn})
+    // ----------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Reports a payment-status change for a signed invoice to NRS.
+    /// PaymentStatus is PAID, REJECTED or PARTIAL; Amount and Reference apply to PARTIAL.
+    /// </summary>
+    procedure UpdatePaymentStatus(IRN: Text; PaymentStatus: Text; Amount: Decimal; Reference: Text): Boolean
+    var
+        IRNLog: Record "NRS IRN Log";
+        Body: JsonObject;
+        RawBody: Text;
+        ResponseText: Text;
+        RespMsg: Text;
+        HttpStatusCode: Integer;
+        Sent: Boolean;
+        Ok: Boolean;
+    begin
+        if IRN = '' then
+            Error(NoIRNForPaymentTxt);
+
+        Body.Add('payment_status', PaymentStatus);
+        if PaymentStatus = 'PARTIAL' then
+            Body.Add('amount', Format(Amount, 0, 9)); // amount is sent as a string per the API sample
+        if Reference <> '' then
+            Body.Add('reference', Reference);
+        Body.WriteTo(RawBody);
+
+        Sent := SendSignedMethod('PATCH', UpdatePaymentPathTok + IRN, RawBody, HttpStatusCode, ResponseText);
+
+        RespMsg := ExtractMessage(ResponseText);
+        Ok := Sent and ((HttpStatusCode = 200) or (HttpStatusCode = 201));
+
+        // Record the outcome on the invoice's log entry.
+        IRNLog.Reset();
+        IRNLog.SetRange(IRN, IRN);
+        if IRNLog.FindFirst() then begin
+            IRNLog."HTTP Status Code" := HttpStatusCode;
+            IRNLog."Response Message" := CopyStr(RespMsg, 1, MaxStrLen(IRNLog."Response Message"));
+            if Ok then begin
+                IRNLog."Payment Status" := CopyStr(PaymentStatus, 1, MaxStrLen(IRNLog."Payment Status"));
+                IRNLog."Payment Updated At" := CurrentDateTime();
+            end else
+                IRNLog."Error Message" := CopyStr(ResponseText, 1, MaxStrLen(IRNLog."Error Message"));
+            IRNLog.Modify(true);
+        end;
+
+        if not Sent then
+            Message(ConnErrTxt)
+        else
+            if Ok then
+                Message(PaymentUpdatedTxt, PaymentStatus)
+            else
+                Message(PaymentFailedTxt, RespMsg);
+
+        exit(Ok);
+    end;
+
+    local procedure ExtractMessage(ResponseText: Text): Text
+    var
+        Json: JsonObject;
+        Tok: JsonToken;
+    begin
+        if Json.ReadFrom(ResponseText) then
+            if Json.Get('message', Tok) then
+                if not Tok.AsValue().IsNull() then
+                    exit(Tok.AsValue().AsText());
+        exit(CopyStr(ResponseText, 1, 250));
     end;
 
     local procedure SendGenerateIRN(NRSSetup: Record "NRS Setup"; ClientSecret: SecretText; InvoiceNumber: Text; IssuanceDate: Text; var HttpStatusCode: Integer; var ResponseText: Text): Boolean
@@ -350,11 +441,11 @@ codeunit 50180 "NRS E-Invoice Mgt."
 
         HttpStatusCode := 0;
         ResponseText := '';
-        exit(TrySend(EndpointUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
+        exit(TrySend('POST', EndpointUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
     end;
 
     [TryFunction]
-    local procedure TrySend(EndpointUrl: Text; ApiKey: Text; Signature: Text; Timestamp: Text; RawBody: Text; var HttpStatusCode: Integer; var ResponseText: Text)
+    local procedure TrySend(HttpMethod: Text; EndpointUrl: Text; ApiKey: Text; Signature: Text; Timestamp: Text; RawBody: Text; var HttpStatusCode: Integer; var ResponseText: Text)
     var
         Client: HttpClient;
         RequestMsg: HttpRequestMessage;
@@ -370,7 +461,7 @@ codeunit 50180 "NRS E-Invoice Mgt."
         ContentHeaders.Add('Content-Type', 'application/json');
 
         RequestMsg.Content := Content;
-        RequestMsg.Method := 'POST';
+        RequestMsg.Method := HttpMethod;
         RequestMsg.SetRequestUri(EndpointUrl);
         RequestMsg.GetHeaders(RequestHeaders);
         RequestHeaders.Add('x-api-key', ApiKey);

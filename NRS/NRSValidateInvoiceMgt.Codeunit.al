@@ -199,19 +199,16 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         InvoiceKind: Text;
         TaxExclusive: Decimal;
         TaxInclusive: Decimal;
+        TotalVat: Decimal;
     begin
         CurrencyCode := SalesInvHeader."Currency Code";
         if CurrencyCode = '' then
             CurrencyCode := NRSSetup."Def. Document Currency";
 
-        // Totals for legal_monetary_total come straight from the posted header.
-        TaxExclusive := SalesInvHeader.Amount;
-        TaxInclusive := SalesInvHeader."Amount Including VAT";
-
         // invoice_kind is taken from the customer card (NRS Invoice Kind). Falls back to B2B
         // only if a customer has not been tagged.
         if Customer.Get(SalesInvHeader."Bill-to Customer No.") then;
-        InvoiceKind := Customer."NRS Invoice Kind";
+        InvoiceKind := DelChr(Format(Customer."NRS Invoice Kind"), '=', ' ');
         if InvoiceKind = '' then
             InvoiceKind := 'B2B';
 
@@ -238,7 +235,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         // ---- Customer party (required for B2B/B2G/G2B) ----
         // The posted invoice's bill-to address is frozen at posting time; where a field was blank
         // then, fall back to the customer master so filling the Customer card fixes past invoices too.
-        BuildParty(CustomerParty, SalesInvHeader."Bill-to Name", Customer."NRS TIN", Customer."NRS Email",
+        BuildParty(CustomerParty, SalesInvHeader."Bill-to Name", Customer."VAT Registration No.", Customer."E-Mail",
             Customer."Phone No.", Customer."NRS Business Desc.",
             CustAddrValue(SalesInvHeader."Bill-to Address", Customer.Address),
             CustAddrValue(SalesInvHeader."Bill-to City", Customer.City),
@@ -247,11 +244,12 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             GetCustomerCountry(Customer, SalesInvHeader));
         Body.Add('accounting_customer_party', CustomerParty);
 
-        // ---- Tax total ----
-        BuildTaxTotalFromLines(SalesInvHeader, NRSSetup, TaxTotalArr);
+        // ---- Tax total (also returns the summed taxable base and VAT, from the lines) ----
+        BuildTaxTotalFromLines(SalesInvHeader, NRSSetup, TaxTotalArr, TaxExclusive, TotalVat);
         Body.Add('tax_total', TaxTotalArr);
+        TaxInclusive := TaxExclusive + TotalVat;
 
-        // ---- Legal monetary total ----
+        // ---- Legal monetary total (computed from the lines so it reconciles with tax_total) ----
         LegalTotal.Add('line_extension_amount', TaxExclusive);
         LegalTotal.Add('tax_exclusive_amount', TaxExclusive);
         LegalTotal.Add('tax_inclusive_amount', TaxInclusive);
@@ -293,7 +291,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     /// producing one tax_subtotal per distinct rate (e.g. a 7.5% Standard VAT subtotal and, if the
     /// invoice mixes treatments, a separate 0% Zero VAT subtotal).
     /// </summary>
-    local procedure BuildTaxTotalFromLines(SalesInvHeader: Record "Sales Invoice Header"; NRSSetup: Record "NRS Setup"; var Arr: JsonArray)
+    local procedure BuildTaxTotalFromLines(SalesInvHeader: Record "Sales Invoice Header"; NRSSetup: Record "NRS Setup"; var Arr: JsonArray; var TotalBaseOut: Decimal; var TotalVatOut: Decimal)
     var
         SalesInvLine: Record "Sales Invoice Line";
         TotalObj: JsonObject;
@@ -305,6 +303,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Rate: Decimal;
         LineBase: Decimal;
         LineVat: Decimal;
+        TotalBase: Decimal;
         TotalVat: Decimal;
         Taxable: Decimal;
         Vat: Decimal;
@@ -332,6 +331,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         foreach Rate in TaxableByRate.Keys() do begin
             Taxable := TaxableByRate.Get(Rate);
             Vat := VatByRate.Get(Rate);
+            TotalBase += Taxable;
             TotalVat += Vat;
 
             if Rate > 0 then begin
@@ -358,6 +358,9 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         TotalObj.Add('tax_subtotal', SubtotalArr);
         Clear(Arr);
         Arr.Add(TotalObj);
+
+        TotalBaseOut := TotalBase;
+        TotalVatOut := TotalVat;
     end;
 
     local procedure BuildInvoiceLines(SalesInvHeader: Record "Sales Invoice Header"; NRSSetup: Record "NRS Setup"; var Arr: JsonArray)
@@ -381,6 +384,9 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         SalesInvLine.SetRange("Document No.", SalesInvHeader."No.");
         SalesInvLine.SetFilter(Type, '<>%1', SalesInvLine.Type::" ");
         SalesInvLine.SetFilter(Quantity, '<>%1', 0);
+        // NRS rejects a line whose line_extension_amount is zero ("is required"), so zero-value
+        // lines (e.g. a free/100%-discounted line) are excluded. They add nothing to the totals.
+        SalesInvLine.SetFilter(Amount, '<>%1', 0);
         if not SalesInvLine.FindSet() then
             exit;
 
@@ -453,7 +459,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             // Emit HSN + product category for goods (now including Resource lines). Only send the
             // isic/service pair for an item you've explicitly tagged with a service category.
             if HsnCode <> '' then
-                LineObj.Add('hsn_code', HsnCode);
+                LineObj.Add('hsn_code', NormalizeHsn(HsnCode));
             if ProductCategory <> '' then
                 LineObj.Add('product_category', ProductCategory);
             if ItemHasService and (ServiceCategory <> '') then begin
@@ -517,6 +523,35 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         exit('');
     end;
 
+    /// <summary>
+    /// Normalizes an HSN code to the NRS format 0000.00. A 4-digit code (e.g. 8708) becomes
+    /// 8708.00; a 6-digit code (e.g. 870830) becomes 8708.30; a code already in 0000.00 form is
+    /// left as-is; anything else is passed through unchanged.
+    /// </summary>
+    local procedure NormalizeHsn(Value: Text): Text
+    var
+        Digits: Text;
+    begin
+        Value := DelChr(Value, '=', ' ');
+        if Value = '' then
+            exit('');
+        if (StrLen(Value) = 7) and (CopyStr(Value, 5, 1) = '.') then
+            exit(Value);
+        Digits := DelChr(Value, '=', '.');
+        if IsAllDigits(Digits) then begin
+            if StrLen(Digits) = 4 then
+                exit(Digits + '.00');
+            if StrLen(Digits) = 6 then
+                exit(CopyStr(Digits, 1, 4) + '.' + CopyStr(Digits, 5, 2));
+        end;
+        exit(Value);
+    end;
+
+    local procedure IsAllDigits(Value: Text): Boolean
+    begin
+        exit((Value <> '') and (DelChr(Value, '=', '0123456789') = ''));
+    end;
+
     /// <summary>Builds issue_time as a zero-padded HH:MM:SS string (NRS/Java LocalTime requires a 2-digit hour).</summary>
     local procedure BuildIssueTime(): Text
     var
@@ -547,10 +582,12 @@ codeunit 50181 "NRS Validate Invoice Mgt."
 
     local procedure GetCustomerCountry(Customer: Record Customer; SalesInvHeader: Record "Sales Invoice Header"): Text
     begin
-        if Customer."NRS Country Code" <> '' then
-            exit(Customer."NRS Country Code");
+        // Country comes from the standard BC Country/Region Code (posted invoice first,
+        // then the customer master), defaulting to NG.
         if SalesInvHeader."Bill-to Country/Region Code" <> '' then
             exit(SalesInvHeader."Bill-to Country/Region Code");
+        if Customer."Country/Region Code" <> '' then
+            exit(Customer."Country/Region Code");
         exit('NG');
     end;
 
