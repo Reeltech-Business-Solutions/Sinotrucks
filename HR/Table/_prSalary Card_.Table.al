@@ -237,6 +237,11 @@ table 54535 "prSalary Card"
         {
 
         }
+        field(327; "Days Worked"; integer)
+        {
+
+        }
+        
     }
     keys
     {

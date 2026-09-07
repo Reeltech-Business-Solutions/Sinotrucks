@@ -1321,6 +1321,10 @@ table 54578 "HR Employees" //54656
             end;
 
         }
+        field(50118; "Tax ID No."; code[13])
+        {
+            
+        }
 
 
 

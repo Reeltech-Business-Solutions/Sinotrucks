@@ -125,8 +125,8 @@ table 54548 "HR-Employee"
         }
         field(35; "Location/Division Code"; Code[20])
         {
-            CaptionClass = '1,1,1';
-            TableRelation = "Dimension Value".Code WHERE("Global Dimension No." = CONST(1), "Dimension Value Type" = CONST(Standard));
+            CaptionClass = '1,2,2';
+            TableRelation = "Dimension Value".Code WHERE("Global Dimension No." = CONST(2), "Dimension Value Type" = CONST(Standard));
 
             trigger OnValidate()
             begin
@@ -138,8 +138,8 @@ table 54548 "HR-Employee"
         }
         field(36; "Department Code"; Code[20])
         {
-            CaptionClass = '1,1,2';
-            TableRelation = "Dimension Value".Code WHERE("Global Dimension No." = CONST(2), "Dimension Value Type" = CONST(Standard));
+            CaptionClass = '1,2,7';
+            TableRelation = "Dimension Value".Code WHERE("Global Dimension No." = CONST(7), "Dimension Value Type" = CONST(Standard));
 
             trigger OnValidate()
             begin
@@ -151,9 +151,9 @@ table 54548 "HR-Employee"
         }
         field(37; Office; Code[20])
         {
-            CaptionClass = '1,1,1';
+            CaptionClass = '1,2,2';
             Description = 'Dimension 2';
-            TableRelation = "Dimension Value".Code WHERE("Global Dimension No." = CONST(1), "Dimension Value Type" = CONST(Standard));
+            TableRelation = "Dimension Value".Code WHERE("Global Dimension No." = CONST(2), "Dimension Value Type" = CONST(Standard));
         }
         field(38; "Resource No."; Code[20])
         {
@@ -1020,6 +1020,10 @@ table 54548 "HR-Employee"
             CalcFormula = Sum("prPeriod Transactions".Amount WHERE("Employee Code" = FIELD("No."), "Special Allowances" = FILTER(true), "Payroll Period" = FIELD("Current Month Filter")));
             Description = 'Sum up Special Allowances';
             FieldClass = FlowField;
+        }
+        field(327; "Tax ID No."; code[13])
+        {
+
         }
     }
     keys

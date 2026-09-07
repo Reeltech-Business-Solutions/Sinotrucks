@@ -105,6 +105,11 @@ page 54611 "prHeader Salary Card"
                     Editable = false;
                     ApplicationArea = all;
                 }
+                field(taxid; rec."Tax ID No.")
+                {
+                    Caption = 'Tax ID No.';
+                    ApplicationArea = all;
+                }
             }
             part(Control1102756041; "prSalary Info")
             {

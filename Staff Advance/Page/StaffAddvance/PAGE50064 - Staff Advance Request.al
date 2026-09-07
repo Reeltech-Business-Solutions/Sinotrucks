@@ -850,7 +850,10 @@ page 50064 "Staff Advance Request"
 
         Post := false;
         Post := JournlPosted.PostedSuccessfully();
-        if Post then begin
+
+        GLentry.SetRange(GLentry."Document No.", Rec."No.");
+        if GLentry.FindFirst then begin
+           // if Post then begin
             Rec.Posted := true;
             Rec."Date Posted" := Today;
             Rec."Time Posted" := Time;
@@ -859,11 +862,11 @@ page 50064 "Staff Advance Request"
             Rec.Modify;
         end;
 
-        GLentry.SetFilter(GLentry."Document No.", Rec."No.");
-        if GLentry.FindFirst then begin
-            Rec.Posted := true;
-            Rec.Modify;
-        end;
+        // GLentry.SetFilter(GLentry."Document No.", Rec."No.");
+        // if GLentry.FindFirst then begin
+        //     Rec.Posted := true;
+        //     Rec.Modify;
+        // end;
 
     end;
 

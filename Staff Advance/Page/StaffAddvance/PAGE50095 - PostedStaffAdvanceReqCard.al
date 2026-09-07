@@ -548,6 +548,27 @@ page 50095 "Posted Staff Advance Req. Card"
                         CurrPage.Close();
                     end;
                 }
+                action(ReOpen)
+                {
+                    Image = Print;
+                    ApplicationArea = All;
+                    Promoted = true;
+                    PromotedCategory = "Report";
+                    PromotedIsBig = true;
+
+                    trigger OnAction()
+                    var
+                        Userset: Record "User Setup";
+                    begin
+                        if Userset.Get(UserId) then begin
+                            if Userset."Reopen Claims" = true then begin
+                                rec.Posted := false;
+                                rec.Status := rec.Status::Approved;
+                                Message('Document has been Reopened');
+                            end;
+                        end;
+                    end;
+                }
             }
         }
     }

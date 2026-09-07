@@ -84,11 +84,11 @@ table 54522 "prPeriod Transactions"
         }
         field(24; "Journal Account Type"; Option)
         {
-            OptionMembers = " ", "G/L Account", Customer, Vendor;
+            OptionMembers = " ","G/L Account",Customer,Vendor;
         }
         field(25; "Post As"; Option)
         {
-            OptionMembers = " ", Debit, Credit;
+            OptionMembers = " ",Debit,Credit;
         }
         field(26; "Loan Number"; Code[10])
         {
@@ -96,7 +96,7 @@ table 54522 "prPeriod Transactions"
         field(27; "coop parameters"; Option)
         {
             Description = 'to be able to report the different coop contributions -Dennis';
-            OptionMembers = "none", shares, loan, "loan Interest", "Emergency loan", "Emergency loan Interest", "School Fees loan", "School Fees loan Interest", Welfare, Pension, NSSF, Overtime;
+            OptionMembers = "none",shares,loan,"loan Interest","Emergency loan","Emergency loan Interest","School Fees loan","School Fees loan Interest",Welfare,Pension,NSSF,Overtime;
         }
         field(28; "Payroll Code"; Code[20])
         {
@@ -105,7 +105,7 @@ table 54522 "prPeriod Transactions"
         field(29; "Payment Mode"; Option)
         {
             Description = 'Bank Transfer,Cheque,Cash,SACCO';
-            OptionMembers = " ", "Bank Transfer", Cheque, Cash, SACCO;
+            OptionMembers = " ","Bank Transfer",Cheque,Cash,SACCO;
         }
         field(30; "Location/Division"; Code[20])
         {
@@ -115,7 +115,7 @@ table 54522 "prPeriod Transactions"
         }
         field(32; "Cost Centre"; Code[20])
         {
-            TableRelation = "Dimension Value".Code WHERE("Dimension Code"=CONST('COSTCENTRE'));
+            TableRelation = "Dimension Value".Code WHERE("Dimension Code" = CONST('COSTCENTRE'));
         }
         field(33; "Salary Grade"; Code[20])
         {
@@ -123,7 +123,7 @@ table 54522 "prPeriod Transactions"
         }
         field(34; "Salary Notch"; Code[20])
         {
-            TableRelation = "Salary Notch"."Salary Notch" WHERE("Salary Grade"=FIELD("Salary Grade"));
+            TableRelation = "Salary Notch"."Salary Notch" WHERE("Salary Grade" = FIELD("Salary Grade"));
         }
         field(35; "Payslip Order"; Integer)
         {
@@ -133,7 +133,7 @@ table 54522 "prPeriod Transactions"
         }
         field(37; "Sort Order"; Integer)
         {
-            CalcFormula = Lookup("prTransaction Codes"."Sort Order" WHERE("Transaction Code"=FIELD("Transaction Code")));
+            CalcFormula = Lookup("prTransaction Codes"."Sort Order" WHERE("Transaction Code" = FIELD("Transaction Code")));
             FieldClass = FlowField;
         }
         field(38; "Employee Classification"; Code[20])
@@ -141,25 +141,25 @@ table 54522 "prPeriod Transactions"
         }
         field(39; Exclude; Boolean)
         {
-            CalcFormula = Lookup("prTransaction Codes".Exclude WHERE("Transaction Code"=FIELD("Transaction Code")));
+            CalcFormula = Lookup("prTransaction Codes".Exclude WHERE("Transaction Code" = FIELD("Transaction Code")));
             FieldClass = FlowField;
         }
         field(40; Frequency; Option)
         {
             Description = 'Fixed,Varied,Quarterly,Annual';
             OptionCaption = 'Fixed,Varied,Quarterly,Annual';
-            OptionMembers = "Fixed", Varied, Quarterly, Annual;
+            OptionMembers = "Fixed",Varied,Quarterly,Annual;
         }
         field(41; "Special Allowances"; Boolean)
         {
-            CalcFormula = Lookup("prTransaction Codes"."Special Allowances" WHERE("Transaction Code"=FIELD("Transaction Code")));
+            CalcFormula = Lookup("prTransaction Codes"."Special Allowances" WHERE("Transaction Code" = FIELD("Transaction Code")));
             FieldClass = FlowField;
         }
         field(42; "Transaction Type"; Option)
         {
-            CalcFormula = Lookup("prTransaction Codes"."Transaction Type" WHERE("Transaction Code"=FIELD("Transaction Code")));
+            CalcFormula = Lookup("prTransaction Codes"."Transaction Type" WHERE("Transaction Code" = FIELD("Transaction Code")));
             FieldClass = FlowField;
-            OptionMembers = Income, Deduction;
+            OptionMembers = Income,Deduction;
         }
         field(43; "Payroll  Classification"; Code[20])
         {
@@ -168,6 +168,9 @@ table 54522 "prPeriod Transactions"
         {
         }
         field(45; "ER Contribution"; Decimal)
+        {
+        }
+        field(46; "Payroll Posting Group"; Code[20])
         {
         }
     }

@@ -907,7 +907,7 @@ MESSAGE('Payroll processing completed successfully.');
         PeriodName: Text[30];
         PeriodMonth: Integer;
         PeriodYear: Integer;
-        ProcessPayroll: Codeunit prPayrollProcessing;
+        ProcessPayroll: Codeunit pr1PayrollProcessing;
         HrEmployee: Record "HR-Employee";
         Employee: Record "HR-Employee";
         ProgressWindow: Dialog;

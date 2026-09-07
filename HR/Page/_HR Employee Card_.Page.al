@@ -374,6 +374,11 @@ page 54541 "HR Employee Card"
                     ApplicationArea = all;
                     Editable = isOpen;
                 }
+                field(taxid; rec."Tax ID No.")
+                {
+                    Caption = 'Tax ID No.';
+                    ApplicationArea = all;
+                }
                 field(Disabled; rec.Disabled)
                 {
                     ApplicationArea = all;

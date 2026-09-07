@@ -727,7 +727,7 @@ page 50079 "Staff Claim"
     var
         JournlPosted: Codeunit "Journal Post Successful1";
         AdjustGenJnl35: Codeunit "Adjust Gen. Journal Balance";
-       // DimMgt: Record "Dimension Set Entry";
+    // DimMgt: Record "Dimension Set Entry";
     begin
 
         if Temp.Get(UserId) then begin
@@ -861,23 +861,27 @@ page 50079 "Staff Claim"
         GenJnlLine.Reset;
         GenJnlLine.SetRange(GenJnlLine."Journal Template Name", JTemplate);
         GenJnlLine.SetRange(GenJnlLine."Journal Batch Name", JBatch);
-      //  Adjust Gen Jnl Exchange Rate Rounding Balances
-       AdjustGenJnl35.Run(GenJnlLine);
-      //  End Adjust Gen Jnl Exchange Rate Rounding Balances
+        //  Adjust Gen Jnl Exchange Rate Rounding Balances
+        AdjustGenJnl35.Run(GenJnlLine);
+        //  End Adjust Gen Jnl Exchange Rate Rounding Balances
 
-         CODEUNIT.Run(CODEUNIT::"Gen. Jnl.-Post", GenJnlLine);
+        CODEUNIT.Run(CODEUNIT::"Gen. Jnl.-Post", GenJnlLine);
 
         Post := FALSE;
         Post := JournlPosted.PostedSuccessfully();
 
         // //  if Post then begin
-        Rec.Posted := true;
-        Rec."Date Posted" := Today;
-        Rec."Time Posted" := Time;
-        Rec."Posted By" := UserId;
-        Rec.Status := Rec.Status::Posted;
-        Rec.Modify;
-      //   end;
+        GLEntry.SetRange(GLEntry."Document No.", Rec."No.");
+        if GLEntry.FindFirst() then begin
+            Rec.Posted := true;
+            Rec."Date Posted" := Today;
+            Rec."Time Posted" := Time;
+            Rec."Posted By" := UserId;
+            Rec.Status := Rec.Status::Posted;
+            Rec.Modify;
+        end;
+
+        //   end;
     end;
 
     procedure CheckImprestRequiredItems()
