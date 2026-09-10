@@ -23,6 +23,14 @@ reportextension 50008 "Proforma Inv. Ext" extends "Standard Sales - Pro Forma In
             column(DescriptionWithComments; DescriptionWithCommentsTxt)
             {
             }
+
+            column(PriceText; PriceTxt)
+            {
+            }
+
+            column(LineAmountText; LineAmountTxt)
+            {
+            }
         }
 
         add(Header)
@@ -37,6 +45,10 @@ reportextension 50008 "Proforma Inv. Ext" extends "Standard Sales - Pro Forma In
             {
             }
             column(validityDate; Header."Quote Valid Until Date")
+            {
+            }
+
+            column(TotalAmountInclVATText; TotalAmountInclVATTxt)
             {
             }
         }
@@ -69,6 +81,8 @@ reportextension 50008 "Proforma Inv. Ext" extends "Standard Sales - Pro Forma In
 
                 // Header IS the Sales Header record - no second lookup needed.
                 CustomerNameTxt := Header."Bill-to Name";
+
+                TotalAmountInclVATTxt := FormatAmountNoDecimals(TotalInclVAT);
             end;
         }
 
@@ -88,6 +102,9 @@ reportextension 50008 "Proforma Inv. Ext" extends "Standard Sales - Pro Forma In
             begin
                 ItemPicture64 := ProformaImageMgt.GetItemPictureBase64(Line.Type, Line."No.");
                 DescriptionWithCommentsTxt := BuildDescriptionWithComments(Line);
+
+                PriceTxt := FormatAmountNoDecimals(Line."Unit Price");
+                LineAmountTxt := FormatAmountNoDecimals(Line."Line Amount");
 
                 // The base report binds its ItemDescription column straight to
                 // Line.Description (report 1302, "column(ItemDescription; Description)"),
@@ -113,6 +130,9 @@ reportextension 50008 "Proforma Inv. Ext" extends "Standard Sales - Pro Forma In
         NairaTok: Label 'NAIRA', Locked = true;
         KoboTok: Label 'KOBO', Locked = true;
         SubUnitTok: Label 'SUBUNIT', Locked = true;
+        PriceTxt: Text;
+        LineAmountTxt: Text;
+        TotalAmountInclVATTxt: Text;
 
     /// <summary>
     /// Total including VAT for the document, matching the Total row in the layout.
@@ -219,5 +239,10 @@ reportextension 50008 "Proforma Inv. Ext" extends "Standard Sales - Pro Forma In
         if ExistingText = '' then
             exit(AddedText);
         exit(ExistingText + TypeHelper.LFSeparator() + AddedText);
+    end;
+
+    local procedure FormatAmountNoDecimals(Amount: Decimal): Text
+    begin
+        exit(Format(Round(Amount, 1), 0, '<Precision,0:0><Standard Format,0>'));
     end;
 }
