@@ -118,7 +118,7 @@ page 50094 "Approved Staff Advance Request"
                 }
                 field(Status; Rec.Status)
                 {
-                 //   Editable = false; //jj131021
+                    //   Editable = false; //jj131021
                     ApplicationArea = All;
                     trigger OnValidate()
                     begin
@@ -848,13 +848,15 @@ page 50094 "Approved Staff Advance Request"
         GenJnlLine.SetRange(GenJnlLine."Journal Batch Name", JBatch);
         CODEUNIT.Run(CODEUNIT::"Gen. Jnl.-Post", GenJnlLine);
 
-        Rec.Posted := true;
-        Rec."Date Posted" := Today;
-        Rec."Time Posted" := Time;
-        Rec.Status := Rec.Status::Posted;
-        Rec."Posted By" := UserId;
-        Rec.Modify;
-
+        GLentry.SetRange(GLentry."Document No.", Rec."No.");
+        if GLentry.FindFirst then begin
+            Rec.Posted := true;
+            Rec."Date Posted" := Today;
+            Rec."Time Posted" := Time;
+            Rec.Status := Rec.Status::Posted;
+            Rec."Posted By" := UserId;
+            Rec.Modify;
+        end;
         GLentry.SetFilter(GLentry."Document No.", Rec."No.");
         if GLentry.FindFirst then begin
             Rec.Posted := true;
