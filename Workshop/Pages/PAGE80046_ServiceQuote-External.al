@@ -1186,7 +1186,7 @@ page 80046 "Service Quote - External"
                     HasChanges: Boolean;
                     UserSet: Record "User Setup";
                 begin
-                    
+
                     ServiceItemLine.SetRange("Document No.", Rec."No.");
                     if ServiceItemLine.FindSet() then
                         repeat
@@ -1567,9 +1567,10 @@ page 80046 "Service Quote - External"
 
                     //   UNTIL ServiceLine.NEXT = 0;
 
-                    Rec.RESET;                                            //Idada
-                    Rec.SETFILTER("No.", Rec."No.");
-                    REPORT.Run(5902, TRUE, true, Rec);
+                    //  Rec.RESET;
+                    ServiceHeader.SetRange("No.", Rec."No.");                                            //Idada
+                                                                                                                   //  Rec.SETFILTER("No.", Rec."No.");
+                    REPORT.Run(5902, TRUE, true, ServiceHeader);
 
 
 
@@ -1665,7 +1666,7 @@ page 80046 "Service Quote - External"
 
         if Job.Get(Rec."No.") then begin
             Rec."Job Created" := Job."No.";
-            Rec.Modify();
+           // Rec.Modify();
         end;
         // JobRec.SetRange("No.", Rec."Job Created");
         // Usersetup.SetRange("User ID", UserId);

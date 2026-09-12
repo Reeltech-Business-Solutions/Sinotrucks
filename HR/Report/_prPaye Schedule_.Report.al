@@ -123,7 +123,7 @@ report 54611 "prPaye Schedule"
             }
             trigger OnAfterGetRecord()
             begin
-                /*
+                
                 objEmp.RESET;
                 objEmp.SETRANGE(objEmp."No.","Employee Code");
                 objEmp.SETFILTER(objEmp.Status,'Active');
@@ -132,17 +132,17 @@ report 54611 "prPaye Schedule"
                   BranchName:=objEmp.Office;
                   EmpLevel:=objEmp."Salary Grade";
                 END;
-                */
+                
                 GPAYS:=0;
                 PeriodTrans.Reset;
                 PeriodTrans.SetRange(PeriodTrans."Employee Code", "Employee Code");
                 PeriodTrans.SetRange(PeriodTrans."Payroll Period", SelectedPeriod);
-                PeriodTrans.SetFilter(PeriodTrans."Employee Code", objEmp."No.");
-                PeriodTrans.SetFilter(PeriodTrans."Transaction Code", 'GPAY');
+               // PeriodTrans.SetFilter(PeriodTrans."Employee Code", objEmp."No.");
+              //  PeriodTrans.SetFilter(PeriodTrans."Transaction Code", 'GPAY');
                 if PeriodTrans.Find('-')then begin
-                    //REPEAT
+                    REPEAT
                     GPAYS:=PeriodTrans.Amount;
-                //UNTIL PeriodTrans.NEXT=0;
+                UNTIL PeriodTrans.NEXT=0;
                 end
                 else
                     GPAYS:=0;
@@ -151,15 +151,15 @@ report 54611 "prPaye Schedule"
                 PeriodTrans.Reset;
                 PeriodTrans.SetRange(PeriodTrans."Employee Code", "Employee Code");
                 PeriodTrans.SetRange(PeriodTrans."Payroll Period", SelectedPeriod);
-                PeriodTrans.SetFilter(PeriodTrans."Employee Code", objEmp."No.");
+              //  PeriodTrans.SetFilter(PeriodTrans."Employee Code", objEmp."No.");
                 PeriodTrans.SetFilter(PeriodTrans."Transaction Code", 'PAYE');
                 //PeriodTrans.SETFILTER(PeriodTrans."Transaction Code",'%1|%2|%3','PAYE-CALC','PAYE','PAYE-S/A');
                 // IF (PeriodTrans."Transaction Code"='PAYE-CALC') OR (PeriodTrans."Transaction Code"='PAYE-S/A') OR (PeriodTrans."Transaction Code"='PAYE') THEN
                 if PeriodTrans.Find('-')then begin
                     //PeriodTrans.CALCSUMS(Amount);
-                    //REPEAT
+                    REPEAT
                     PayeAmount:=PeriodTrans.Amount;
-                //UNTIL PeriodTrans.NEXT=0;
+                UNTIL PeriodTrans.NEXT=0;
                 end;
                 if PayeAmount <= 0 then CurrReport.Skip;
                 TotTaxablePay:=TotTaxablePay + TaxablePay;
