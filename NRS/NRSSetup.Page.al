@@ -215,6 +215,16 @@ page 50380 "NRS Setup"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the product category sent for Resource-type lines.';
                 }
+                field("Def. Credit Note Type Code"; Rec."Def. Credit Note Type Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the invoice_type_code sent for credit notes (NRS default 381).';
+                }
+                field("Def. Debit Note Type Code"; Rec."Def. Debit Note Type Code")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the invoice_type_code sent for debit notes (NRS default 383).';
+                }
             }
         }
     }

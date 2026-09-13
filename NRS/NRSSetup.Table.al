@@ -187,6 +187,19 @@ table 50180 "NRS Setup"
             Caption = 'Default Resource Product Category';
             DataClassification = CustomerContent;
         }
+        // ---- Invoice type codes for credit/debit notes (NRS Resources 1.6.1) ----
+        field(54; "Def. Credit Note Type Code"; Text[10])
+        {
+            Caption = 'Default Credit Note Type Code';
+            DataClassification = CustomerContent;
+            InitValue = '381';
+        }
+        field(55; "Def. Debit Note Type Code"; Text[10])
+        {
+            Caption = 'Default Debit Note Type Code';
+            DataClassification = CustomerContent;
+            InitValue = '383';
+        }
     }
 
     keys

@@ -18,9 +18,12 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     Permissions = tabledata "NRS IRN Log" = RIMD,
                   tabledata "Sales Invoice Header" = R,
                   tabledata "Sales Invoice Line" = R,
+                  tabledata "Sales Cr.Memo Header" = R,
+                  tabledata "Sales Cr.Memo Line" = R,
                   tabledata Customer = R,
                   tabledata Item = R,
                   tabledata "NRS Item Category Map" = R,
+                  tabledata "NRS Line Buffer" = RIMD,
                   tabledata "Unit of Measure" = R;
 
     var
@@ -184,6 +187,148 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     end;
 
     // ----------------------------------------------------------------------------------
+    // Credit Notes (Posted Sales Credit Memos)
+    // ----------------------------------------------------------------------------------
+
+    /// <summary>Batch sign/validate from the Posted Sales Credit Memos list.</summary>
+    procedure ValidateForSelectedCreditMemos(var CrMemoHeader: Record "Sales Cr.Memo Header")
+    var
+        NRSSetup: Record "NRS Setup";
+        ResultStatus: Enum "NRS Validation Status";
+        TotalCount: Integer;
+        ValidatedCount: Integer;
+        FailCount: Integer;
+    begin
+        NRSSetup.CheckReadyForValidate();
+        if CrMemoHeader.IsEmpty() then begin
+            Message(NothingSelectedTxt);
+            exit;
+        end;
+        if not Confirm(ConfirmBatchTxt, false, CrMemoHeader.Count()) then
+            exit;
+        CrMemoHeader.FindSet();
+        repeat
+            TotalCount += 1;
+            ResultStatus := ValidateForCreditMemo(CrMemoHeader);
+            if ResultStatus = ResultStatus::Validated then
+                ValidatedCount += 1
+            else
+                FailCount += 1;
+        until CrMemoHeader.Next() = 0;
+        Message(SummaryTxt, TotalCount, ValidatedCount, FailCount);
+    end;
+
+    /// <summary>Signs a single posted credit memo (invoice_type_code = credit note). Returns the status.</summary>
+    procedure ValidateForCreditMemo(CrMemoHeader: Record "Sales Cr.Memo Header"): Enum "NRS Validation Status"
+    var
+        NRSSetup: Record "NRS Setup";
+        IRNLog: Record "NRS IRN Log";
+        EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+        Body: JsonObject;
+        RawBody: Text;
+        ResponseText: Text;
+        RespMsg: Text;
+        HttpStatusCode: Integer;
+        Sent: Boolean;
+        NewStatus: Enum "NRS Validation Status";
+    begin
+        NRSSetup.CheckReadyForValidate();
+        if CrMemoHeader."NRS IRN" = '' then
+            Error(NoIRNTxt, CrMemoHeader."No.");
+
+        BuildCreditMemoJson(CrMemoHeader, NRSSetup, Body);
+        Body.WriteTo(RawBody);
+
+        Sent := EInvoiceMgt.SendSigned(ValidatePathTok, RawBody, HttpStatusCode, ResponseText);
+
+        FindOrCreateLogCM(IRNLog, CrMemoHeader);
+
+        if not Sent then begin
+            NewStatus := NewStatus::Failed;
+            RespMsg := ConnErrTxt;
+        end else begin
+            RespMsg := ExtractMessage(ResponseText);
+            if (HttpStatusCode = 200) or (HttpStatusCode = 201) then
+                NewStatus := NewStatus::Validated
+            else
+                NewStatus := NewStatus::Failed;
+        end;
+
+        IRNLog."Validation Status" := NewStatus;
+        IRNLog."Validation Message" := CopyStr(RespMsg, 1, MaxStrLen(IRNLog."Validation Message"));
+        IRNLog."Validated At" := CurrentDateTime();
+        IRNLog."HTTP Status Code" := HttpStatusCode;
+        IRNLog.SetRequestBody(RawBody);
+        if NewStatus = NewStatus::Failed then
+            IRNLog."Error Message" := CopyStr(ResponseText, 1, MaxStrLen(IRNLog."Error Message"));
+        IRNLog.Modify(true);
+
+        exit(NewStatus);
+    end;
+
+    /// <summary>Single credit memo: generate the IRN then sign. Returns the resulting status.</summary>
+    procedure GenerateAndValidateForCreditMemo(CrMemoHeader: Record "Sales Cr.Memo Header"): Enum "NRS Validation Status"
+    var
+        EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+        Refreshed: Record "Sales Cr.Memo Header";
+        IRNStatus: Enum "NRS IRN Status";
+        ValStatus: Enum "NRS Validation Status";
+    begin
+        IRNStatus := EInvoiceMgt.GenerateForCreditMemo(CrMemoHeader, false);
+        if not (IRNStatus in [IRNStatus::Generated, IRNStatus::Duplicate]) then
+            exit(ValStatus::Failed);
+        if not Refreshed.Get(CrMemoHeader."No.") then
+            exit(ValStatus::Failed);
+        if Refreshed."NRS IRN" = '' then
+            exit(ValStatus::Failed);
+        exit(ValidateForCreditMemo(Refreshed));
+    end;
+
+    /// <summary>Batch generate + sign from the Posted Sales Credit Memos list.</summary>
+    procedure GenerateAndValidateForSelectedCreditMemos(var CrMemoHeader: Record "Sales Cr.Memo Header")
+    var
+        NRSSetup: Record "NRS Setup";
+        ValStatus: Enum "NRS Validation Status";
+        TotalCount: Integer;
+        ValidatedCount: Integer;
+        FailCount: Integer;
+    begin
+        NRSSetup.CheckReadyForValidate();
+        if CrMemoHeader.IsEmpty() then begin
+            Message(NothingSelectedTxt);
+            exit;
+        end;
+        if not Confirm(ConfirmGVTxt, false, CrMemoHeader.Count()) then
+            exit;
+        CrMemoHeader.FindSet();
+        repeat
+            TotalCount += 1;
+            ValStatus := GenerateAndValidateForCreditMemo(CrMemoHeader);
+            if ValStatus = ValStatus::Validated then
+                ValidatedCount += 1
+            else
+                FailCount += 1;
+        until CrMemoHeader.Next() = 0;
+        Message(GVSummaryTxt, TotalCount, TotalCount, ValidatedCount, FailCount);
+    end;
+
+    local procedure FindOrCreateLogCM(var IRNLog: Record "NRS IRN Log"; CrMemoHeader: Record "Sales Cr.Memo Header")
+    begin
+        IRNLog.Reset();
+        IRNLog.SetRange("Source Table No.", Database::"Sales Cr.Memo Header");
+        IRNLog.SetRange("Document No.", CrMemoHeader."No.");
+        if IRNLog.FindFirst() then
+            exit;
+        IRNLog.Init();
+        IRNLog."Source Table No." := Database::"Sales Cr.Memo Header";
+        IRNLog."Document No." := CrMemoHeader."No.";
+        IRNLog."Invoice Number" := CrMemoHeader."No.";
+        IRNLog."Posting Date" := CrMemoHeader."Posting Date";
+        IRNLog.IRN := CrMemoHeader."NRS IRN";
+        IRNLog.Insert(true);
+    end;
+
+    // ----------------------------------------------------------------------------------
     // Payload builder
     // ----------------------------------------------------------------------------------
 
@@ -195,6 +340,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         LegalTotal: JsonObject;
         TaxTotalArr: JsonArray;
         InvoiceLineArr: JsonArray;
+        LineBuf: Record "NRS Line Buffer";
         CurrencyCode: Code[10];
         InvoiceKind: Text;
         TaxExclusive: Decimal;
@@ -219,11 +365,16 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('issue_time', BuildIssueTime());
         if SalesInvHeader."Due Date" <> 0D then
             Body.Add('due_date', Format(SalesInvHeader."Due Date", 0, '<Year4>-<Month,2>-<Day,2>'));
-        Body.Add('invoice_type_code', NRSSetup."Def. Invoice Type Code");
+        // invoice_type_code depends on whether this invoice is tagged as a debit/credit note.
+        Body.Add('invoice_type_code', InvoiceTypeCodeFor(SalesInvHeader."NRS Document Type", NRSSetup));
         Body.Add('invoice_kind', InvoiceKind);
         Body.Add('payment_status', NRSSetup."Def. Payment Status");
         Body.Add('document_currency_code', CurrencyCode);
         Body.Add('tax_currency_code', CurrencyCode);
+
+        // A debit/credit note must reference the original invoice it corrects (billing_reference).
+        if SalesInvHeader."NRS Document Type" <> SalesInvHeader."NRS Document Type"::Invoice then
+            AddBillingReference(Body, SalesInvHeader."NRS Original Invoice No.");
 
         // ---- Supplier party (required) ----
         BuildParty(SupplierParty, NRSSetup."Supplier Name", NRSSetup."Supplier TIN", NRSSetup."Supplier Email",
@@ -241,24 +392,125 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             CustAddrValue(SalesInvHeader."Bill-to City", Customer.City),
             Customer."NRS LGA Code", Customer."NRS State Code",
             CustAddrValue(SalesInvHeader."Bill-to Post Code", Customer."Post Code"),
-            GetCustomerCountry(Customer, SalesInvHeader));
+            GetCountryCode(SalesInvHeader."Bill-to Country/Region Code", Customer."Country/Region Code"));
         Body.Add('accounting_customer_party', CustomerParty);
 
-        // ---- Tax total (also returns the summed taxable base and VAT, from the lines) ----
-        BuildTaxTotalFromLines(SalesInvHeader, NRSSetup, TaxTotalArr, TaxExclusive, TotalVat);
+        // ---- Lines (into a buffer), tax total and monetary total (all reconcile) ----
+        FillBufferFromInvoice(SalesInvHeader."No.", LineBuf);
+        BuildTaxTotalFromLines(LineBuf, NRSSetup, TaxTotalArr, TaxExclusive, TotalVat);
         Body.Add('tax_total', TaxTotalArr);
         TaxInclusive := TaxExclusive + TotalVat;
 
-        // ---- Legal monetary total (computed from the lines so it reconciles with tax_total) ----
         LegalTotal.Add('line_extension_amount', TaxExclusive);
         LegalTotal.Add('tax_exclusive_amount', TaxExclusive);
         LegalTotal.Add('tax_inclusive_amount', TaxInclusive);
         LegalTotal.Add('payable_amount', TaxInclusive);
         Body.Add('legal_monetary_total', LegalTotal);
 
-        // ---- Invoice lines ----
-        BuildInvoiceLines(SalesInvHeader, NRSSetup, InvoiceLineArr);
+        BuildInvoiceLines(LineBuf, NRSSetup, InvoiceLineArr);
         Body.Add('invoice_line', InvoiceLineArr);
+    end;
+
+    local procedure BuildCreditMemoJson(CrMemoHeader: Record "Sales Cr.Memo Header"; NRSSetup: Record "NRS Setup"; var Body: JsonObject)
+    var
+        Customer: Record Customer;
+        LineBuf: Record "NRS Line Buffer";
+        SupplierParty: JsonObject;
+        CustomerParty: JsonObject;
+        LegalTotal: JsonObject;
+        TaxTotalArr: JsonArray;
+        InvoiceLineArr: JsonArray;
+        CurrencyCode: Code[10];
+        InvoiceKind: Text;
+        TaxExclusive: Decimal;
+        TaxInclusive: Decimal;
+        TotalVat: Decimal;
+    begin
+        CurrencyCode := CrMemoHeader."Currency Code";
+        if CurrencyCode = '' then
+            CurrencyCode := NRSSetup."Def. Document Currency";
+
+        if Customer.Get(CrMemoHeader."Bill-to Customer No.") then;
+        InvoiceKind := DelChr(Format(Customer."NRS Invoice Kind"), '=', ' ');
+        if InvoiceKind = '' then
+            InvoiceKind := 'B2B';
+
+        Body.Add('business_id', NRSSetup."Business ID");
+        Body.Add('irn', CrMemoHeader."NRS IRN");
+        Body.Add('issue_date', Format(CrMemoHeader."Posting Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+        Body.Add('issue_time', BuildIssueTime());
+        if CrMemoHeader."Due Date" <> 0D then
+            Body.Add('due_date', Format(CrMemoHeader."Due Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+        Body.Add('invoice_type_code', NRSSetup."Def. Credit Note Type Code");
+        Body.Add('invoice_kind', InvoiceKind);
+        Body.Add('payment_status', NRSSetup."Def. Payment Status");
+        Body.Add('document_currency_code', CurrencyCode);
+        Body.Add('tax_currency_code', CurrencyCode);
+
+        // A credit note must reference the original invoice it corrects.
+        AddBillingReference(Body, CrMemoHeader."NRS Original Invoice No.");
+
+        BuildParty(SupplierParty, NRSSetup."Supplier Name", NRSSetup."Supplier TIN", NRSSetup."Supplier Email",
+            NRSSetup."Supplier Telephone", NRSSetup."Supplier Business Desc.", NRSSetup."Supplier Street",
+            NRSSetup."Supplier City", NRSSetup."Supplier LGA Code", NRSSetup."Supplier State Code",
+            NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
+        Body.Add('accounting_supplier_party', SupplierParty);
+
+        BuildParty(CustomerParty, CrMemoHeader."Bill-to Name", Customer."VAT Registration No.", Customer."E-Mail",
+            Customer."Phone No.", Customer."NRS Business Desc.",
+            CustAddrValue(CrMemoHeader."Bill-to Address", Customer.Address),
+            CustAddrValue(CrMemoHeader."Bill-to City", Customer.City),
+            Customer."NRS LGA Code", Customer."NRS State Code",
+            CustAddrValue(CrMemoHeader."Bill-to Post Code", Customer."Post Code"),
+            GetCountryCode(CrMemoHeader."Bill-to Country/Region Code", Customer."Country/Region Code"));
+        Body.Add('accounting_customer_party', CustomerParty);
+
+        FillBufferFromCreditMemo(CrMemoHeader."No.", LineBuf);
+        BuildTaxTotalFromLines(LineBuf, NRSSetup, TaxTotalArr, TaxExclusive, TotalVat);
+        Body.Add('tax_total', TaxTotalArr);
+        TaxInclusive := TaxExclusive + TotalVat;
+        LegalTotal.Add('line_extension_amount', TaxExclusive);
+        LegalTotal.Add('tax_exclusive_amount', TaxExclusive);
+        LegalTotal.Add('tax_inclusive_amount', TaxInclusive);
+        LegalTotal.Add('payable_amount', TaxInclusive);
+        Body.Add('legal_monetary_total', LegalTotal);
+        BuildInvoiceLines(LineBuf, NRSSetup, InvoiceLineArr);
+        Body.Add('invoice_line', InvoiceLineArr);
+    end;
+
+    /// <summary>Returns the NRS invoice_type_code for the document kind (invoice / credit note / debit note).</summary>
+    local procedure InvoiceTypeCodeFor(DocType: Enum "NRS Document Type"; NRSSetup: Record "NRS Setup"): Text
+    begin
+        case DocType of
+            DocType::"Credit Note":
+                exit(NRSSetup."Def. Credit Note Type Code");
+            DocType::"Debit Note":
+                exit(NRSSetup."Def. Debit Note Type Code");
+            else
+                exit(NRSSetup."Def. Invoice Type Code");
+        end;
+    end;
+
+    /// <summary>
+    /// Adds a billing_reference array pointing at the original invoice's IRN and issue date.
+    /// The original is found from its posted sales invoice (NRS IRN + Posting Date).
+    /// </summary>
+    procedure AddBillingReference(var Body: JsonObject; OriginalInvoiceNo: Code[20])
+    var
+        OrigInv: Record "Sales Invoice Header";
+        RefArr: JsonArray;
+        RefObj: JsonObject;
+    begin
+        if OriginalInvoiceNo = '' then
+            exit;
+        if not OrigInv.Get(OriginalInvoiceNo) then
+            exit;
+        if OrigInv."NRS IRN" = '' then
+            exit;
+        RefObj.Add('irn', OrigInv."NRS IRN");
+        RefObj.Add('issue_date', Format(OrigInv."Posting Date", 0, '<Year4>-<Month,2>-<Day,2>'));
+        RefArr.Add(RefObj);
+        Body.Add('billing_reference', RefArr);
     end;
 
     local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; Lga: Text; State: Text; PostalZone: Text; Country: Text)
@@ -291,9 +543,8 @@ codeunit 50181 "NRS Validate Invoice Mgt."
     /// producing one tax_subtotal per distinct rate (e.g. a 7.5% Standard VAT subtotal and, if the
     /// invoice mixes treatments, a separate 0% Zero VAT subtotal).
     /// </summary>
-    local procedure BuildTaxTotalFromLines(SalesInvHeader: Record "Sales Invoice Header"; NRSSetup: Record "NRS Setup"; var Arr: JsonArray; var TotalBaseOut: Decimal; var TotalVatOut: Decimal)
+    local procedure BuildTaxTotalFromLines(var LineBuf: Record "NRS Line Buffer"; NRSSetup: Record "NRS Setup"; var Arr: JsonArray; var TotalBaseOut: Decimal; var TotalVatOut: Decimal)
     var
-        SalesInvLine: Record "Sales Invoice Line";
         TotalObj: JsonObject;
         SubtotalObj: JsonObject;
         CategoryObj: JsonObject;
@@ -309,15 +560,12 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Vat: Decimal;
         CategoryId: Text;
     begin
-        // Accumulate taxable base and VAT per rate, straight from each posted line.
-        SalesInvLine.SetRange("Document No.", SalesInvHeader."No.");
-        SalesInvLine.SetFilter(Type, '<>%1', SalesInvLine.Type::" ");
-        SalesInvLine.SetFilter(Quantity, '<>%1', 0);
-        if SalesInvLine.FindSet() then
+        // Accumulate taxable base and VAT per rate from the line buffer.
+        if LineBuf.FindSet() then
             repeat
-                Rate := SalesInvLine."VAT %";
-                LineBase := SalesInvLine.Amount;
-                LineVat := SalesInvLine."Amount Including VAT" - SalesInvLine.Amount;
+                Rate := LineBuf."VAT %";
+                LineBase := LineBuf.Amount;
+                LineVat := LineBuf."Amount Including VAT" - LineBuf.Amount;
                 if TaxableByRate.ContainsKey(Rate) then begin
                     TaxableByRate.Set(Rate, TaxableByRate.Get(Rate) + LineBase);
                     VatByRate.Set(Rate, VatByRate.Get(Rate) + LineVat);
@@ -325,7 +573,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
                     TaxableByRate.Add(Rate, LineBase);
                     VatByRate.Add(Rate, LineVat);
                 end;
-            until SalesInvLine.Next() = 0;
+            until LineBuf.Next() = 0;
 
         // One tax_subtotal per rate group.
         foreach Rate in TaxableByRate.Keys() do begin
@@ -363,9 +611,8 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         TotalVatOut := TotalVat;
     end;
 
-    local procedure BuildInvoiceLines(SalesInvHeader: Record "Sales Invoice Header"; NRSSetup: Record "NRS Setup"; var Arr: JsonArray)
+    local procedure BuildInvoiceLines(var LineBuf: Record "NRS Line Buffer"; NRSSetup: Record "NRS Setup"; var Arr: JsonArray)
     var
-        SalesInvLine: Record "Sales Invoice Line";
         Item: Record Item;
         ItemCategoryMap: Record "NRS Item Category Map";
         UnitOfMeasure: Record "Unit of Measure";
@@ -381,40 +628,34 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         ItemHasService: Boolean;
     begin
         Clear(Arr);
-        SalesInvLine.SetRange("Document No.", SalesInvHeader."No.");
-        SalesInvLine.SetFilter(Type, '<>%1', SalesInvLine.Type::" ");
-        SalesInvLine.SetFilter(Quantity, '<>%1', 0);
-        // NRS rejects a line whose line_extension_amount is zero ("is required"), so zero-value
-        // lines (e.g. a free/100%-discounted line) are excluded. They add nothing to the totals.
-        SalesInvLine.SetFilter(Amount, '<>%1', 0);
-        if not SalesInvLine.FindSet() then
+        if not LineBuf.FindSet() then
             exit;
 
         repeat
             Clear(ItemObj);
-            ItemObj.Add('name', GetLineName(SalesInvLine));
-            if SalesInvLine.Description <> '' then
-                ItemObj.Add('description', SalesInvLine.Description);
-            if SalesInvLine."No." <> '' then
-                ItemObj.Add('sellers_item_identification', SalesInvLine."No.");
+            ItemObj.Add('name', GetLineName(LineBuf.Description, LineBuf."No."));
+            if LineBuf.Description <> '' then
+                ItemObj.Add('description', LineBuf.Description);
+            if LineBuf."No." <> '' then
+                ItemObj.Add('sellers_item_identification', LineBuf."No.");
 
             // price_unit resolution order:
             //  1) the unit's International Standard Code, if set on the Unit of Measure card;
             //  2) the built-in UN/ECE mapping for the company's known unit codes;
             //  3) the setup default.
             PriceUnit := NRSSetup."Def. Price Unit";
-            if SalesInvLine."Unit of Measure Code" <> '' then begin
+            if LineBuf."Unit of Measure Code" <> '' then begin
                 MappedUnit := '';
-                if UnitOfMeasure.Get(SalesInvLine."Unit of Measure Code") then
+                if UnitOfMeasure.Get(LineBuf."Unit of Measure Code") then
                     MappedUnit := UnitOfMeasure."International Standard Code";
                 if MappedUnit = '' then
-                    MappedUnit := MapUnitCode(SalesInvLine."Unit of Measure Code");
+                    MappedUnit := MapUnitCode(LineBuf."Unit of Measure Code");
                 if MappedUnit <> '' then
                     PriceUnit := MappedUnit;
             end;
 
             Clear(PriceObj);
-            PriceObj.Add('price_amount', SalesInvLine."Unit Price");
+            PriceObj.Add('price_amount', LineBuf."Unit Price");
             PriceObj.Add('base_quantity', 1);
             PriceObj.Add('price_unit', PriceUnit);
 
@@ -431,30 +672,26 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             ServiceCategory := NRSSetup."Def. Service Category";
             ItemHasService := false;
 
-            case SalesInvLine.Type of
-                SalesInvLine.Type::Resource:
-                    begin
-                        // Resources (e.g. BREAK-IN SERVICE) are sent as goods with an HSN code.
-                        if NRSSetup."Def. Resource HSN Code" <> '' then
-                            HsnCode := NRSSetup."Def. Resource HSN Code";
-                        if NRSSetup."Def. Resource Product Category" <> '' then
-                            ProductCategory := NRSSetup."Def. Resource Product Category";
-                    end;
-                SalesInvLine.Type::Item:
-                    if Item.Get(SalesInvLine."No.") then
-                        if (Item."Item Category Code" <> '') and ItemCategoryMap.Get(Item."Item Category Code") then begin
-                            if ItemCategoryMap."HSN Code" <> '' then
-                                HsnCode := ItemCategoryMap."HSN Code";
-                            if ItemCategoryMap."Product Category" <> '' then
-                                ProductCategory := ItemCategoryMap."Product Category";
-                            if ItemCategoryMap."ISIC Code" <> 0 then
-                                IsicCode := ItemCategoryMap."ISIC Code";
-                            if ItemCategoryMap."Service Category" <> '' then begin
-                                ServiceCategory := ItemCategoryMap."Service Category";
-                                ItemHasService := true;
-                            end;
+            if LineBuf."Is Resource" then begin
+                // Resources (e.g. BREAK-IN SERVICE) are sent as goods with an HSN code.
+                if NRSSetup."Def. Resource HSN Code" <> '' then
+                    HsnCode := NRSSetup."Def. Resource HSN Code";
+                if NRSSetup."Def. Resource Product Category" <> '' then
+                    ProductCategory := NRSSetup."Def. Resource Product Category";
+            end else
+                if Item.Get(LineBuf."No.") then
+                    if (Item."Item Category Code" <> '') and ItemCategoryMap.Get(Item."Item Category Code") then begin
+                        if ItemCategoryMap."HSN Code" <> '' then
+                            HsnCode := ItemCategoryMap."HSN Code";
+                        if ItemCategoryMap."Product Category" <> '' then
+                            ProductCategory := ItemCategoryMap."Product Category";
+                        if ItemCategoryMap."ISIC Code" <> 0 then
+                            IsicCode := ItemCategoryMap."ISIC Code";
+                        if ItemCategoryMap."Service Category" <> '' then begin
+                            ServiceCategory := ItemCategoryMap."Service Category";
+                            ItemHasService := true;
                         end;
-            end;
+                    end;
 
             // Emit HSN + product category for goods (now including Resource lines). Only send the
             // isic/service pair for an item you've explicitly tagged with a service category.
@@ -467,26 +704,88 @@ codeunit 50181 "NRS Validate Invoice Mgt."
                 LineObj.Add('service_category', ServiceCategory);
             end;
 
-            LineObj.Add('discount_rate', SalesInvLine."Line Discount %");
-            LineObj.Add('discount_amount', SalesInvLine."Line Discount Amount");
+            LineObj.Add('discount_rate', LineBuf."Line Discount %");
+            LineObj.Add('discount_amount', LineBuf."Line Discount Amount");
             LineObj.Add('fee_rate', 0);
             LineObj.Add('fee_amount', 0);
-            LineObj.Add('invoiced_quantity', SalesInvLine.Quantity);
-            LineObj.Add('line_extension_amount', SalesInvLine.Amount);
+            LineObj.Add('invoiced_quantity', LineBuf.Quantity);
+            LineObj.Add('line_extension_amount', LineBuf.Amount);
 
             Arr.Add(LineObj);
-        until SalesInvLine.Next() = 0;
+        until LineBuf.Next() = 0;
+    end;
+
+    /// <summary>Fills the line buffer from a posted sales invoice (skips blank/zero-qty/zero-amount lines).</summary>
+    local procedure FillBufferFromInvoice(DocNo: Code[20]; var LineBuf: Record "NRS Line Buffer")
+    var
+        SalesInvLine: Record "Sales Invoice Line";
+    begin
+        LineBuf.Reset();
+        LineBuf.DeleteAll();
+        SalesInvLine.SetRange("Document No.", DocNo);
+        SalesInvLine.SetFilter(Type, '<>%1', SalesInvLine.Type::" ");
+        SalesInvLine.SetFilter(Quantity, '<>%1', 0);
+        SalesInvLine.SetFilter(Amount, '<>%1', 0);
+        if SalesInvLine.FindSet() then
+            repeat
+                LineBuf.Init();
+                LineBuf."Line No." := SalesInvLine."Line No.";
+                LineBuf."Is Resource" := SalesInvLine.Type = SalesInvLine.Type::Resource;
+                LineBuf."No." := SalesInvLine."No.";
+                LineBuf.Description := SalesInvLine.Description;
+                LineBuf."Unit of Measure Code" := SalesInvLine."Unit of Measure Code";
+                LineBuf."Unit Price" := SalesInvLine."Unit Price";
+                LineBuf.Quantity := SalesInvLine.Quantity;
+                LineBuf."Line Discount %" := SalesInvLine."Line Discount %";
+                LineBuf."Line Discount Amount" := SalesInvLine."Line Discount Amount";
+                LineBuf.Amount := SalesInvLine.Amount;
+                LineBuf."Amount Including VAT" := SalesInvLine."Amount Including VAT";
+                LineBuf."VAT %" := SalesInvLine."VAT %";
+                LineBuf.Insert();
+            until SalesInvLine.Next() = 0;
+        LineBuf.Reset();
+    end;
+
+    /// <summary>Fills the line buffer from a posted sales credit memo (skips blank/zero-qty/zero-amount lines).</summary>
+    local procedure FillBufferFromCreditMemo(DocNo: Code[20]; var LineBuf: Record "NRS Line Buffer")
+    var
+        CrMemoLine: Record "Sales Cr.Memo Line";
+    begin
+        LineBuf.Reset();
+        LineBuf.DeleteAll();
+        CrMemoLine.SetRange("Document No.", DocNo);
+        CrMemoLine.SetFilter(Type, '<>%1', CrMemoLine.Type::" ");
+        CrMemoLine.SetFilter(Quantity, '<>%1', 0);
+        CrMemoLine.SetFilter(Amount, '<>%1', 0);
+        if CrMemoLine.FindSet() then
+            repeat
+                LineBuf.Init();
+                LineBuf."Line No." := CrMemoLine."Line No.";
+                LineBuf."Is Resource" := CrMemoLine.Type = CrMemoLine.Type::Resource;
+                LineBuf."No." := CrMemoLine."No.";
+                LineBuf.Description := CrMemoLine.Description;
+                LineBuf."Unit of Measure Code" := CrMemoLine."Unit of Measure Code";
+                LineBuf."Unit Price" := CrMemoLine."Unit Price";
+                LineBuf.Quantity := CrMemoLine.Quantity;
+                LineBuf."Line Discount %" := CrMemoLine."Line Discount %";
+                LineBuf."Line Discount Amount" := CrMemoLine."Line Discount Amount";
+                LineBuf.Amount := CrMemoLine.Amount;
+                LineBuf."Amount Including VAT" := CrMemoLine."Amount Including VAT";
+                LineBuf."VAT %" := CrMemoLine."VAT %";
+                LineBuf.Insert();
+            until CrMemoLine.Next() = 0;
+        LineBuf.Reset();
     end;
 
     // ----------------------------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------------------------
 
-    local procedure GetLineName(SalesInvLine: Record "Sales Invoice Line"): Text
+    local procedure GetLineName(Description: Text; No: Text): Text
     begin
-        if SalesInvLine.Description <> '' then
-            exit(SalesInvLine.Description);
-        exit(SalesInvLine."No.");
+        if Description <> '' then
+            exit(Description);
+        exit(No);
     end;
 
     /// <summary>Maps a Business Central unit-of-measure code to its UN/ECE (NRS) price_unit code.</summary>
@@ -580,14 +879,14 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         exit(MasterValue);
     end;
 
-    local procedure GetCustomerCountry(Customer: Record Customer; SalesInvHeader: Record "Sales Invoice Header"): Text
+    local procedure GetCountryCode(PostedCountry: Code[10]; MasterCountry: Code[10]): Text
     begin
-        // Country comes from the standard BC Country/Region Code (posted invoice first,
+        // Country comes from the standard BC Country/Region Code (posted document first,
         // then the customer master), defaulting to NG.
-        if SalesInvHeader."Bill-to Country/Region Code" <> '' then
-            exit(SalesInvHeader."Bill-to Country/Region Code");
-        if Customer."Country/Region Code" <> '' then
-            exit(Customer."Country/Region Code");
+        if PostedCountry <> '' then
+            exit(PostedCountry);
+        if MasterCountry <> '' then
+            exit(MasterCountry);
         exit('NG');
     end;
 

@@ -1,4 +1,4 @@
-tableextension 50180 "NRS Sales Inv. Header Ext" extends "Sales Invoice Header"
+tableextension 50182 "NRS Sales Cr.Memo Hdr Ext" extends "Sales Cr.Memo Header"
 {
     fields
     {
@@ -27,13 +27,7 @@ tableextension 50180 "NRS Sales Inv. Header Ext" extends "Sales Invoice Header"
             Editable = false;
             DataClassification = CustomerContent;
         }
-        // Tag a posted invoice as a Debit Note (BC has no native debit-note document).
-        field(50184; "NRS Document Type"; Enum "NRS Document Type")
-        {
-            Caption = 'NRS Document Type';
-            DataClassification = CustomerContent;
-        }
-        // The original invoice this note corrects (used for billing_reference on debit notes).
+        // The original invoice this credit note corrects (used for billing_reference).
         field(50185; "NRS Original Invoice No."; Code[20])
         {
             Caption = 'NRS Original Invoice No.';

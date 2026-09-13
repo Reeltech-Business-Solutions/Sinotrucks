@@ -26,6 +26,14 @@ page 50384 "NRS E-Invoicing RC"
                 RunObject = page "Posted Sales Invoices";
                 Image = Invoice;
             }
+            action(PostedSalesCreditMemos)
+            {
+                ApplicationArea = All;
+                Caption = 'Posted Sales Credit Memos';
+                ToolTip = 'Open posted sales credit memos and sign them as NRS credit notes.';
+                RunObject = page "Posted Sales Credit Memos";
+                Image = CreditMemo;
+            }
             action(EInvoices)
             {
                 ApplicationArea = All;

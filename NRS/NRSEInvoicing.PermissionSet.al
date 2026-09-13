@@ -11,8 +11,11 @@ permissionset 50180 "NRS E-Invoicing"
         tabledata "NRS Item Category Map" = RIMD,
         tabledata "NRS State" = RIMD,
         tabledata "NRS LGA" = RIMD,
+        tabledata "NRS Line Buffer" = RIMD,
         tabledata Customer = R,
         tabledata Item = R,
+        tabledata "Sales Cr.Memo Header" = R,
+        tabledata "Sales Cr.Memo Line" = R,
         table "NRS Setup" = X,
         table "NRS IRN Log" = X,
         table "NRS Cue" = X,
@@ -20,6 +23,7 @@ permissionset 50180 "NRS E-Invoicing"
         table "NRS Item Category Map" = X,
         table "NRS State" = X,
         table "NRS LGA" = X,
+        table "NRS Line Buffer" = X,
         codeunit "NRS E-Invoice Mgt." = X,
         codeunit "NRS Validate Invoice Mgt." = X,
         codeunit "NRS Reference Data" = X,
@@ -34,5 +38,6 @@ permissionset 50180 "NRS E-Invoicing"
         page "NRS Item Category Map" = X,
         page "NRS Payment Update" = X,
         page "NRS States" = X,
-        page "NRS LGAs" = X;
+        page "NRS LGAs" = X,
+        page "NRS Note Details" = X;
 }

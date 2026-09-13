@@ -23,6 +23,18 @@ pageextension 50181 "NRS Posted Sales Invoice" extends "Posted Sales Invoice"
                     ApplicationArea = All;
                     ToolTip = 'Specifies when the IRN was generated.';
                 }
+                field("NRS Document Type"; Rec."NRS Document Type")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies whether NRS treats this posted invoice as a normal Invoice or a Debit Note. Use the "Set NRS Note Type" action to change it.';
+                }
+                field("NRS Original Invoice No."; Rec."NRS Original Invoice No.")
+                {
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies the original posted invoice this debit note corrects. Its IRN is sent to NRS as the billing_reference.';
+                }
             }
         }
     }
@@ -31,6 +43,25 @@ pageextension 50181 "NRS Posted Sales Invoice" extends "Posted Sales Invoice"
     {
         addlast(processing)
         {
+            action(NRSSetNoteType)
+            {
+                ApplicationArea = All;
+                Caption = 'Set NRS Note Type';
+                ToolTip = 'Tags this posted invoice as a normal Invoice or a Debit Note, and sets the original invoice it corrects (for the NRS billing_reference).';
+                Image = LinkWeb;
+
+                trigger OnAction()
+                var
+                    EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+                    Dlg: Page "NRS Note Details";
+                begin
+                    Dlg.InitDialog(true, Rec."NRS Document Type", Rec."NRS Original Invoice No.");
+                    if Dlg.RunModal() = Action::OK then begin
+                        EInvoiceMgt.SetInvoiceNoteInfo(Rec, Dlg.GetDocType(), Dlg.GetOrigNo());
+                        CurrPage.Update(false);
+                    end;
+                end;
+            }
             action(NRSGenerateIRNCard)
             {
                 ApplicationArea = All;

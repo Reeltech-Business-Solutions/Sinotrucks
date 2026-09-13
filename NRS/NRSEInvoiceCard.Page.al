@@ -96,8 +96,7 @@ page 50387 "NRS E-Invoice Card"
                 field(Status; Rec.Status)
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the IRN status. ';
-                    Editable = false;
+                    ToolTip = 'Specifies the IRN status. You can override it here.';
 
                     trigger OnValidate()
                     begin
@@ -107,8 +106,7 @@ page 50387 "NRS E-Invoice Card"
                 field("Validation Status"; Rec."Validation Status")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the validation status. ';
-                    Editable = false;
+                    ToolTip = 'Specifies the validation status. You can override it here.';
                 }
                 field("Response Message"; Rec."Response Message")
                 {
@@ -195,11 +193,13 @@ page 50387 "NRS E-Invoice Card"
                 var
                     SalesInvHeader: Record "Sales Invoice Header";
                     EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+                    QRFailTxt: Label 'QR code generation failed. Open the NRS IRN Log for this invoice and read the Error Message / Response Message for the reason.';
                 begin
-                    if SalesInvHeader.Get(Rec."Document No.") then begin
-                        EInvoiceMgt.GenerateQRForInvoice(SalesInvHeader);
-                        EInvoiceMgt.ShowQRForInvoice(SalesInvHeader);
-                    end;
+                    if SalesInvHeader.Get(Rec."Document No.") then
+                        if EInvoiceMgt.GenerateQRForInvoice(SalesInvHeader) then
+                            EInvoiceMgt.ShowQRForInvoice(SalesInvHeader)
+                        else
+                            Message(QRFailTxt);
                     CurrPage.Update(false);
                 end;
             }
@@ -275,24 +275,24 @@ page 50387 "NRS E-Invoice Card"
                     DownloadFromStream(InStr, '', '', '', FileName);
                 end;
             }
-            // action(ViewReport)
-            // {
-            //     ApplicationArea = All;
-            //     Caption = 'View Invoice Report';
-            //     ToolTip = 'Previews/prints the NRS e-invoice report, including the QR code.';
-            //     Image = Print;
-            //     Promoted = true;
-            //     PromotedCategory = Process;
-            //     PromotedOnly = true;
+            action(ViewReport)
+            {
+                ApplicationArea = All;
+                Caption = 'View Invoice Report';
+                ToolTip = 'Previews/prints the NRS e-invoice report, including the QR code.';
+                Image = Print;
+                Promoted = true;
+                PromotedCategory = Process;
+                PromotedOnly = true;
 
-            //     trigger OnAction()
-            //     var
-            //         SalesInvHeader: Record "Sales Invoice Header";
-            //     begin
-            //         SalesInvHeader.SetRange("No.", Rec."Document No.");
-            //         Report.Run(Report::"NRS E-Invoice", true, false, SalesInvHeader);
-            //     end;
-            // }
+                trigger OnAction()
+                var
+                    SalesInvHeader: Record "Sales Invoice Header";
+                begin
+                    SalesInvHeader.SetRange("No.", Rec."Document No.");
+                    Report.Run(Report::"NRS E-Invoice", true, false, SalesInvHeader);
+                end;
+            }
             action(OpenPostedInvoice)
             {
                 ApplicationArea = All;

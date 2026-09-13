@@ -1,4 +1,4 @@
-pageextension 50183 "NRS Item Card" extends "Item Card"
+pageextension 50383 "NRS Item Card" extends "Item Card"
 {
     layout
     {

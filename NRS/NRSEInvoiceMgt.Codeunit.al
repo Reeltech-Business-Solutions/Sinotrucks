@@ -11,7 +11,8 @@ codeunit 50180 "NRS E-Invoice Mgt."
 
     Permissions = tabledata "NRS IRN Log" = RIMD,
                   tabledata "NRS QR Buffer" = RIMD,
-                  tabledata "Sales Invoice Header" = RM;
+                  tabledata "Sales Invoice Header" = RM,
+                  tabledata "Sales Cr.Memo Header" = RM;
 
     var
         GenerateIrnPathTok: Label 'generate-irn', Locked = true;
@@ -136,6 +137,97 @@ codeunit 50180 "NRS E-Invoice Mgt."
         UpdateInvoiceHeader(SalesInvHeader."No.", IRNLog);
 
         exit(IRNLog.Status);
+    end;
+
+    /// <summary>Generates (or re-generates) the IRN for a posted sales credit memo.</summary>
+    procedure GenerateForCreditMemo(CrMemoHeader: Record "Sales Cr.Memo Header"; Force: Boolean): Enum "NRS IRN Status"
+    var
+        NRSSetup: Record "NRS Setup";
+        IRNLog: Record "NRS IRN Log";
+        ClientSecret: SecretText;
+        InvoiceNumber: Text;
+        IssuanceDate: Text;
+        ResponseText: Text;
+        IRN: Text;
+        ExistingIRN: Text;
+        RespMsg: Text;
+        HttpStatusCode: Integer;
+        NewStatus: Enum "NRS IRN Status";
+        Sent: Boolean;
+    begin
+        NRSSetup.CheckReady();
+
+        if (not Force) and (CrMemoHeader."NRS IRN Status" = CrMemoHeader."NRS IRN Status"::Generated) then
+            exit(CrMemoHeader."NRS IRN Status");
+
+        InvoiceNumber := CrMemoHeader."No.";
+        IssuanceDate := Format(CrMemoHeader."Posting Date", 0, '<Year4><Month,2><Day,2>');
+        ClientSecret := NRSSetup.GetClientSecret();
+
+        Sent := SendGenerateIRN(NRSSetup, ClientSecret, InvoiceNumber, IssuanceDate, HttpStatusCode, ResponseText);
+
+        GetOrInitLog(IRNLog, Database::"Sales Cr.Memo Header", CrMemoHeader."No.");
+        ExistingIRN := IRNLog.IRN;
+        IRNLog."Posting Date" := CrMemoHeader."Posting Date";
+        IRNLog."Invoice Number" := CopyStr(InvoiceNumber, 1, MaxStrLen(IRNLog."Invoice Number"));
+        IRNLog."Business ID" := NRSSetup."Business ID";
+        IRNLog."Service ID" := NRSSetup."Service ID";
+        IRNLog."HTTP Status Code" := HttpStatusCode;
+        IRNLog.IRN := '';
+        IRNLog."Error Message" := '';
+        IRNLog.StampAudit();
+
+        if not Sent then begin
+            NewStatus := NewStatus::Failed;
+            IRNLog.Status := NewStatus;
+            IRNLog."Response Message" := CopyStr(ConnErrTxt, 1, MaxStrLen(IRNLog."Response Message"));
+        end else begin
+            ParseResponse(ResponseText, HttpStatusCode, IRN, RespMsg, NewStatus);
+            if (NewStatus = NewStatus::Duplicate) and (IRN = '') then begin
+                if ExistingIRN <> '' then
+                    IRN := ExistingIRN
+                else
+                    IRN := CrMemoHeader."NRS IRN";
+            end;
+            IRNLog.Status := NewStatus;
+            IRNLog.IRN := CopyStr(IRN, 1, MaxStrLen(IRNLog.IRN));
+            IRNLog."Response Message" := CopyStr(RespMsg, 1, MaxStrLen(IRNLog."Response Message"));
+            if NewStatus = NewStatus::Failed then
+                IRNLog."Error Message" := CopyStr(ResponseText, 1, MaxStrLen(IRNLog."Error Message"));
+        end;
+
+        SaveLog(IRNLog);
+        UpdateCreditMemoHeader(CrMemoHeader."No.", IRNLog);
+
+        exit(IRNLog.Status);
+    end;
+
+    /// <summary>Sets the NRS document type + original invoice on a posted sales invoice (for debit notes).</summary>
+    procedure SetInvoiceNoteInfo(var SalesInvHeader: Record "Sales Invoice Header"; DocType: Enum "NRS Document Type"; OriginalNo: Code[20])
+    begin
+        SalesInvHeader."NRS Document Type" := DocType;
+        SalesInvHeader."NRS Original Invoice No." := OriginalNo;
+        SalesInvHeader.Modify(false);
+    end;
+
+    /// <summary>Sets the original invoice on a posted credit memo (for billing_reference).</summary>
+    procedure SetCreditMemoOriginal(var CrMemoHeader: Record "Sales Cr.Memo Header"; OriginalNo: Code[20])
+    begin
+        CrMemoHeader."NRS Original Invoice No." := OriginalNo;
+        CrMemoHeader.Modify(false);
+    end;
+
+    local procedure UpdateCreditMemoHeader(DocNo: Code[20]; var IRNLog: Record "NRS IRN Log")
+    var
+        CrMemoHeader: Record "Sales Cr.Memo Header";
+    begin
+        if not CrMemoHeader.Get(DocNo) then
+            exit;
+        CrMemoHeader."NRS IRN" := CopyStr(IRNLog.IRN, 1, MaxStrLen(CrMemoHeader."NRS IRN"));
+        CrMemoHeader."NRS IRN Status" := IRNLog.Status;
+        CrMemoHeader."NRS IRN Log Entry No." := IRNLog."Entry No.";
+        CrMemoHeader."NRS IRN Generated At" := IRNLog."Generated At";
+        CrMemoHeader.Modify(false);
     end;
 
     // ----------------------------------------------------------------------------------
@@ -282,11 +374,23 @@ codeunit 50180 "NRS E-Invoice Mgt."
 
         Timestamp := GetUtcTimestamp();
         Signature := Crypto.GenerateHashAsBase64String(RawBody + Timestamp, ClientSecret, HmacAlg::HMACSHA256);
-        EndpointUrl := BuildUrl(NRSSetup."Base URL", GenerateQrPathTok);
+        // The QR endpoint is documented on the /si/ surface, not /app/invoice/. Point this call
+        // there by swapping the segment in the configured Base URL. IRN and Sign stay on /app/invoice/.
+        EndpointUrl := BuildUrl(QrBaseUrl(NRSSetup."Base URL"), GenerateQrPathTok);
 
         HttpStatusCode := 0;
         ResponseText := '';
         exit(TrySend('POST', EndpointUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
+    end;
+
+    /// <summary>Derives the /si base (used by generate-qr-code) from the configured /app/invoice base URL.</summary>
+    local procedure QrBaseUrl(BaseUrl: Text): Text
+    begin
+        if BaseUrl.Contains('/app/invoice') then
+            exit(BaseUrl.Replace('/app/invoice', '/si'));
+        if BaseUrl.Contains('/app') then
+            exit(BaseUrl.Replace('/app', '/si'));
+        exit(BaseUrl);
     end;
 
     local procedure ParseQRResponse(ResponseText: Text; var QRBase64: Text; var RespMsg: Text)
