@@ -1129,11 +1129,11 @@ page 50111 "Archived Sales Summary Inv"
                         Handled: Boolean;
                     begin
                         Handled := false;
-                        OnBeforeStatisticsAction(Rec, Handled);
+                       // OnBeforeStatisticsAction(Rec, Handled);
                         if Handled then
                             exit;
 
-                        Rec.OpenDocumentStatistics();
+                       // Rec.OpenDocumentStatistics();
                         CurrPage.SalesLines.Page.ForceTotalsCalculation();
                     end;
                 }

@@ -345,7 +345,7 @@ page 50110 "Summary Sales Invoice List"
 
                     trigger OnAction()
                     begin
-                        Rec.OpenDocumentStatistics();
+                    //    Rec.OpenDocumentStatistics();
                     end;
                 }
 #endif

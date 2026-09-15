@@ -329,7 +329,7 @@ page 50139 "Foreign Purchase Order List"
 
                     trigger OnAction()
                     begin
-                        Rec.OpenPurchaseOrderStatistics;
+                      //  Rec.OpenPurchaseOrderStatistics;
                     end;
                 }
                 action(Approvals)

@@ -902,7 +902,7 @@ page 50087 "Purchase Requisition Subform"
                     var
                         ODataUtility: Codeunit ODataUtility;
                     begin
-                        ODataUtility.EditWorksheetInExcel('Purchase_QuotePurchLines', CurrPage.ObjectId(false), StrSubstNo('Document_No eq ''%1''', Rec."Document No."));
+                    //    ODataUtility.EditWorksheetInExcel('Purchase_QuotePurchLines', CurrPage.ObjectId(false), StrSubstNo('Document_No eq ''%1''', Rec."Document No."));
                     end;
 
                 }

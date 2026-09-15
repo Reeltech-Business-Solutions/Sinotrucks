@@ -1004,7 +1004,7 @@ page 50138 "Local Purchase Order"
 
                     trigger OnAction()
                     begin
-                        Rec.OpenPurchaseOrderStatistics;
+                     //   Rec.OpenPurchaseOrderStatistics;
                         PurchCalcDiscByType.ResetRecalculateInvoiceDisc(Rec);
                     end;
                 }

@@ -1,7 +1,7 @@
 report 54611 "prPaye Schedule"
 {
     DefaultLayout = RDLC;
-    RDLCLayout = './prPayeSchedule.rdlc';
+    RDLCLayout = './prPayeSchedule.rdl';
 
     dataset
     {
@@ -92,8 +92,8 @@ report 54611 "prPaye Schedule"
             }
             dataitem("HR Employees"; "HR Employees")
             {
-                DataItemLink = "No."=FIELD("Employee Code");
-                DataItemTableView = WHERE(Status=CONST(Active));
+                DataItemLink = "No." = FIELD("Employee Code");
+                DataItemTableView = WHERE(Status = CONST(Active));
 
                 column(LastName; "HR Employees"."Last Name")
                 {
@@ -118,54 +118,59 @@ report 54611 "prPaye Schedule"
                 }
                 trigger OnAfterGetRecord()
                 begin
-                //CurrReport.SKIP;
+                    //CurrReport.SKIP;
                 end;
             }
             trigger OnAfterGetRecord()
             begin
-                
+
                 objEmp.RESET;
-                objEmp.SETRANGE(objEmp."No.","Employee Code");
-                objEmp.SETFILTER(objEmp.Status,'Active');
+                objEmp.SETRANGE(objEmp."No.", "Employee Code");
+                objEmp.SETFILTER(objEmp.Status, 'Active');
                 IF objEmp.FIND('-') THEN BEGIN
-                  EmployeeName:=objEmp."First Name"+' '+objEmp."Middle Name"+' '+objEmp."Last Name";
-                  BranchName:=objEmp.Office;
-                  EmpLevel:=objEmp."Salary Grade";
+                    EmployeeName := objEmp."First Name" + ' ' + objEmp."Middle Name" + ' ' + objEmp."Last Name";
+                    BranchName := objEmp.Office;
+                    EmpLevel := objEmp."Salary Grade";
                 END;
-                
-                GPAYS:=0;
+
+                GPAYS := 0;
+                TaxablePay := 0;
+                PayeAmount := 0;
                 PeriodTrans.Reset;
                 PeriodTrans.SetRange(PeriodTrans."Employee Code", "Employee Code");
                 PeriodTrans.SetRange(PeriodTrans."Payroll Period", SelectedPeriod);
-               // PeriodTrans.SetFilter(PeriodTrans."Employee Code", objEmp."No.");
-              //  PeriodTrans.SetFilter(PeriodTrans."Transaction Code", 'GPAY');
-                if PeriodTrans.Find('-')then begin
-                    REPEAT
-                    GPAYS:=PeriodTrans.Amount;
-                UNTIL PeriodTrans.NEXT=0;
-                end
-                else
-                    GPAYS:=0;
-                TaxablePay:=0;
-                PayeAmount:=0;
-                PeriodTrans.Reset;
-                PeriodTrans.SetRange(PeriodTrans."Employee Code", "Employee Code");
-                PeriodTrans.SetRange(PeriodTrans."Payroll Period", SelectedPeriod);
-              //  PeriodTrans.SetFilter(PeriodTrans."Employee Code", objEmp."No.");
-                PeriodTrans.SetFilter(PeriodTrans."Transaction Code", 'PAYE');
-                //PeriodTrans.SETFILTER(PeriodTrans."Transaction Code",'%1|%2|%3','PAYE-CALC','PAYE','PAYE-S/A');
-                // IF (PeriodTrans."Transaction Code"='PAYE-CALC') OR (PeriodTrans."Transaction Code"='PAYE-S/A') OR (PeriodTrans."Transaction Code"='PAYE') THEN
-                if PeriodTrans.Find('-')then begin
-                    //PeriodTrans.CALCSUMS(Amount);
-                    REPEAT
-                    PayeAmount:=PeriodTrans.Amount;
-                UNTIL PeriodTrans.NEXT=0;
-                end;
+                // PeriodTrans.SetFilter(PeriodTrans."Employee Code", objEmp."No.");
+                //  PeriodTrans.SetFilter(PeriodTrans."Transaction Code", 'GPAY');
+                if PeriodTrans.Find('-') then
+                    repeat
+                        if (PeriodTrans."Transaction Code" = 'GPAY') then begin
+                            //  REPEAT
+                            GPAYS += PeriodTrans.Amount;
+                            //  UNTIL PeriodTrans.NEXT=0;
+                        end
+                        else
+                            //     GPAYS := 0;
+                            // TaxablePay := 0;
+                            // PayeAmount := 0;
+                            // PeriodTrans.Reset;
+                            // PeriodTrans.SetRange(PeriodTrans."Employee Code", "Employee Code");
+                            // PeriodTrans.SetRange(PeriodTrans."Payroll Period", SelectedPeriod);
+                            //  PeriodTrans.SetFilter(PeriodTrans."Employee Code", objEmp."No.");
+                            //     PeriodTrans.SetFilter(PeriodTrans."Transaction Code", 'PAYE');
+                            //PeriodTrans.SETFILTER(PeriodTrans."Transaction Code",'%1|%2|%3','PAYE-CALC','PAYE','PAYE-S/A');
+                            // IF (PeriodTrans."Transaction Code"='PAYE-CALC') OR (PeriodTrans."Transaction Code"='PAYE-S/A') OR (PeriodTrans."Transaction Code"='PAYE') THEN
+                            if (PeriodTrans."Transaction Code" = 'PAYE') then begin
+                                //PeriodTrans.CALCSUMS(Amount);
+                                //  REPEAT
+                                PayeAmount += PeriodTrans.Amount;
+                                //  UNTIL PeriodTrans.NEXT=0;
+                            end;
+                    UNTIL PeriodTrans.NEXT = 0;
                 if PayeAmount <= 0 then CurrReport.Skip;
-                TotTaxablePay:=TotTaxablePay + TaxablePay;
-                TotPayeAmount:=TotPayeAmount + PayeAmount;
-                RCount:=RCount + 1;
-            //CurrReport.SKIP;
+                TotTaxablePay := TotTaxablePay + TaxablePay;
+                TotPayeAmount := TotPayeAmount + PayeAmount;
+                RCount := RCount + 1;
+                //CurrReport.SKIP;
             end;
         }
     }
@@ -183,37 +188,39 @@ report 54611 "prPaye Schedule"
     }
     trigger OnPreReport()
     begin
-        PeriodFilter:="prSalary Card".GetFilter("Period Filter");
+        PeriodFilter := "prSalary Card".GetFilter("Period Filter");
         if PeriodFilter = '' then Error('You must specify the period filter');
-        SelectedPeriod:="prSalary Card".GetRangeMin("Period Filter");
+        SelectedPeriod := "prSalary Card".GetRangeMin("Period Filter");
         objPeriod.Reset;
-        if objPeriod.Get(SelectedPeriod)then PeriodName:=objPeriod."Period Name";
-        if companyinfo.Get()then companyinfo.CalcFields(companyinfo.Picture);
+        if objPeriod.Get(SelectedPeriod) then PeriodName := objPeriod."Period Name";
+        if companyinfo.Get() then companyinfo.CalcFields(companyinfo.Picture);
     end;
-    var PeriodTrans: Record "prPeriod Transactions";
-    PayeAmount: Decimal;
-    TotPayeAmount: Decimal;
-    TaxablePay: Decimal;
-    TotTaxablePay: Decimal;
-    EmployeeName: Text[200];
-    PinNumber: Text[30];
-    objPeriod: Record "prPayroll Periods";
-    objEmp: Record "HR-Employee";
-    SelectedPeriod: Date;
-    PeriodName: Text[30];
-    PeriodFilter: Text[30];
-    companyinfo: Record "Company Information";
-    RCount: Integer;
-    CurrReport_PAGENOCaptionLbl: Label 'Page';
-    P_A_Y_E_ScheduleCaptionLbl: Label 'P.A.Y.E Schedule';
-    No_CaptionLbl: Label 'No.';
-    Employee_NameCaptionLbl: Label 'Employee Name';
-    Paye_AmountCaptionLbl: Label 'Paye Amount';
-    Taxable_PayCaptionLbl: Label 'Taxable Pay';
-    Totals_CaptionLbl: Label 'Totals:';
-    GPAYS: Decimal;
-    Zone: Text[30];
-    Depts: Text[30];
-    BranchName: Text[30];
-    EmpLevel: Code[10];
+
+    var
+        PeriodTrans: Record "prPeriod Transactions";
+        PayeAmount: Decimal;
+        TotPayeAmount: Decimal;
+        TaxablePay: Decimal;
+        TotTaxablePay: Decimal;
+        EmployeeName: Text[200];
+        PinNumber: Text[30];
+        objPeriod: Record "prPayroll Periods";
+        objEmp: Record "HR-Employee";
+        SelectedPeriod: Date;
+        PeriodName: Text[30];
+        PeriodFilter: Text[30];
+        companyinfo: Record "Company Information";
+        RCount: Integer;
+        CurrReport_PAGENOCaptionLbl: Label 'Page';
+        P_A_Y_E_ScheduleCaptionLbl: Label 'P.A.Y.E Schedule';
+        No_CaptionLbl: Label 'No.';
+        Employee_NameCaptionLbl: Label 'Employee Name';
+        Paye_AmountCaptionLbl: Label 'Paye Amount';
+        Taxable_PayCaptionLbl: Label 'Taxable Pay';
+        Totals_CaptionLbl: Label 'Totals:';
+        GPAYS: Decimal;
+        Zone: Text[30];
+        Depts: Text[30];
+        BranchName: Text[30];
+        EmpLevel: Code[10];
 }

@@ -967,7 +967,7 @@ page 50140 "Foreign Purchase Order"
 
                     trigger OnAction()
                     begin
-                        Rec.OpenPurchaseOrderStatistics;
+                      //  Rec.OpenPurchaseOrderStatistics;
                         PurchCalcDiscByType.ResetRecalculateInvoiceDisc(Rec);
                     end;
                 }

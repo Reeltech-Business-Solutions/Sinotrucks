@@ -344,7 +344,7 @@ page 50124 "Archived Sales SummaryInvList"
 
                     trigger OnAction()
                     begin
-                        Rec.OpenDocumentStatistics();
+                       // Rec.OpenDocumentStatistics();
                     end;
                 }
 #endif

@@ -1164,7 +1164,7 @@ page 50109 "Summary Sales Invoice"
                         if Handled then
                             exit;
 
-                        Rec.OpenDocumentStatistics();
+                     //   Rec.OpenDocumentStatistics();
                         CurrPage.SalesLines.Page.ForceTotalsCalculation();
                     end;
                 }

@@ -360,7 +360,7 @@ page 50137 "Local Purchase Order List"
 
                     trigger OnAction()
                     begin
-                        Rec.OpenPurchaseOrderStatistics;
+                      //  Rec.OpenPurchaseOrderStatistics;
                     end;
                 }
                 action(Approvals)
