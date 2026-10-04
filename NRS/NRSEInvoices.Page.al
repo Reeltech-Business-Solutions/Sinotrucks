@@ -21,6 +21,27 @@ page 50386 "NRS E-Invoices"
                     Editable = false;
                     ToolTip = 'Specifies the posted sales invoice number.';
                 }
+                field("Job No."; JobNo)
+                {
+                    Caption = 'Job No.';
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies the Job No. from the posted document.';
+                }
+                field("Customer No."; CustomerNo)
+                {
+                    Caption = 'Customer No.';
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies the customer number from the posted document.';
+                }
+                field("Customer Name"; CustomerName)
+                {
+                    Caption = 'Customer Name';
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies the customer name from the posted document.';
+                }
                 field(IRN; Rec.IRN)
                 {
                     ApplicationArea = All;
@@ -161,11 +182,72 @@ page 50386 "NRS E-Invoices"
                     CurrPage.Update(false);
                 end;
             }
+            action(UpdatePaymentStatusBulk)
+            {
+                ApplicationArea = All;
+                Caption = 'Update Payment Status';
+                ToolTip = 'Reports a payment status change (PAID, REJECTED or PARTIAL) to NRS for all the selected invoices at once.';
+                Image = Payment;
+                Promoted = true;
+                PromotedCategory = Process;
+                PromotedOnly = true;
+
+                trigger OnAction()
+                var
+                    IRNLog: Record "NRS IRN Log";
+                    EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+                    PayPage: Page "NRS Payment Update";
+                    StatusText: Text;
+                    Reference: Text;
+                    Amount: Decimal;
+                    TotalCount: Integer;
+                    OkCount: Integer;
+                    FailCount: Integer;
+                    SkipCount: Integer;
+                    NothingTxt: Label 'No invoices were selected.';
+                    ConfirmTxt: Label 'Update the NRS payment status for %1 selected invoice(s)?', Comment = '%1 = count';
+                    SummaryTxt: Label 'Payment status update complete.\\Processed: %1\Updated: %2\Failed: %3\Skipped (no IRN): %4', Comment = '%1..%4 counts';
+                begin
+                    CurrPage.SetSelectionFilter(IRNLog);
+                    if IRNLog.IsEmpty() then begin
+                        Message(NothingTxt);
+                        exit;
+                    end;
+
+                    if not Confirm(ConfirmTxt, false, IRNLog.Count()) then
+                        exit;
+
+                    // Ask once for the status/amount/note; it is applied to every selected invoice.
+                    if PayPage.RunModal() <> Action::OK then
+                        exit;
+                    StatusText := PayPage.GetStatusText();
+                    Amount := PayPage.GetAmount();
+                    Reference := PayPage.GetReference();
+
+                    IRNLog.FindSet();
+                    repeat
+                        TotalCount += 1;
+                        if IRNLog.IRN = '' then
+                            SkipCount += 1
+                        else
+                            if EInvoiceMgt.UpdatePaymentStatus(IRNLog.IRN, StatusText, Amount, Reference) then
+                                OkCount += 1
+                            else
+                                FailCount += 1;
+                    until IRNLog.Next() = 0;
+
+                    Message(SummaryTxt, TotalCount, OkCount, FailCount, SkipCount);
+                    CurrPage.Update(false);
+                end;
+            }
         }
     }
 
     var
         StatusStyle: Text;
+        JobNo: Code[20];
+        CustomerNo: Code[20];
+        CustomerName: Text[100];
 
     trigger OnAfterGetRecord()
     begin
@@ -178,6 +260,34 @@ page 50386 "NRS E-Invoices"
                 StatusStyle := 'Ambiguous';
             else
                 StatusStyle := 'Standard';
+        end;
+
+        PopulateDocInfo();
+    end;
+
+    /// <summary>Looks up the customer and job for the row from the underlying posted document.</summary>
+    local procedure PopulateDocInfo()
+    var
+        SalesInvHeader: Record "Sales Invoice Header";
+        CrMemoHeader: Record "Sales Cr.Memo Header";
+    begin
+        Clear(JobNo);
+        Clear(CustomerNo);
+        Clear(CustomerName);
+
+        case Rec."Source Table No." of
+            Database::"Sales Invoice Header":
+                if SalesInvHeader.Get(Rec."Document No.") then begin
+                    CustomerNo := SalesInvHeader."Sell-to Customer No.";
+                    CustomerName := CopyStr(SalesInvHeader."Sell-to Customer Name", 1, MaxStrLen(CustomerName));
+                    JobNo := SalesInvHeader."Job No.";
+                end;
+            Database::"Sales Cr.Memo Header":
+                if CrMemoHeader.Get(Rec."Document No.") then begin
+                    CustomerNo := CrMemoHeader."Sell-to Customer No.";
+                    CustomerName := CopyStr(CrMemoHeader."Sell-to Customer Name", 1, MaxStrLen(CustomerName));
+                    JobNo := CrMemoHeader."Job No.";
+                end;
         end;
     end;
 }
