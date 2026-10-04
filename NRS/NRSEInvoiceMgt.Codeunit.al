@@ -18,15 +18,19 @@ codeunit 50180 "NRS E-Invoice Mgt."
         GenerateIrnPathTok: Label 'generate-irn', Locked = true;
         GenerateQrPathTok: Label 'generate-qr-code', Locked = true;
         UpdatePaymentPathTok: Label 'update/', Locked = true;
+        ConfirmPathTok: Label 'confirm/', Locked = true;
+        NoIRNForConfirmTxt: Label 'This invoice has no IRN yet. Generate and sign it before confirming its NRS status.';
+        ConfirmFailTxt: Label 'Confirm failed (HTTP %1): %2', Comment = '%1 = status, %2 = message';
+        ConfirmOkTxt: Label 'NRS status for %1:\\Transmitted: %2\Delivered: %3\Payment status: %4\Sync date: %5', Comment = '%1 IRN, %2 transmitted, %3 delivered, %4 payment status, %5 sync date';
         NoIRNForPaymentTxt: Label 'This invoice has no IRN yet. Generate and sign it before updating its payment status.';
         PaymentUpdatedTxt: Label 'Payment status updated to %1 with NRS.', Comment = '%1 = status';
         PaymentFailedTxt: Label 'The payment status update failed: %1', Comment = '%1 = message';
         ConnErrTxt: Label 'Could not reach the NRS e-invoicing service. Check network access / firewall.';
         NothingSelectedTxt: Label 'No invoices were selected.';
-        SummaryTxt: Label 'IRN generation complete.\n\nProcessed: %1\nGenerated: %2\nDuplicates (already issued): %3\nFailed: %4\nSkipped (already generated): %5', Comment = '%1..%5 are counts';
+        SummaryTxt: Label 'IRN generation complete.\\Processed: %1\Generated: %2\Duplicates (already issued): %3\Failed: %4\Skipped (already generated): %5', Comment = '%1..%5 are counts';
         ConfirmBatchTxt: Label 'Generate NRS IRNs for %1 selected invoice(s)?', Comment = '%1 = count';
         QRConfirmTxt: Label 'Generate NRS QR codes for %1 selected invoice(s)?', Comment = '%1 = count';
-        QRSummaryTxt: Label 'QR code generation complete.\n\nProcessed: %1\nGenerated: %2\nFailed: %3', Comment = '%1..%3 are counts';
+        QRSummaryTxt: Label 'QR code generation complete.\\Processed: %1\Generated: %2\Failed: %3', Comment = '%1..%3 are counts';
         NoQRTxt: Label 'No QR code is available for this invoice. Generate one first.';
 
     /// <summary>Batch entry point from the Posted Sales Invoices list. Processes every selected record.</summary>
@@ -448,6 +452,42 @@ codeunit 50180 "NRS E-Invoice Mgt."
         exit(TrySend(HttpMethod, EndpointUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
     end;
 
+    /// <summary>Signs and sends to an explicit full URL (used by the /si get-invoice pull endpoint).</summary>
+    procedure SendSignedToUrl(HttpMethod: Text; FullUrl: Text; RawBody: Text; var HttpStatusCode: Integer; var ResponseText: Text): Boolean
+    var
+        NRSSetup: Record "NRS Setup";
+        Crypto: Codeunit "Cryptography Management";
+        ClientSecret: SecretText;
+        HmacAlg: Option HMACMD5,HMACSHA1,HMACSHA256,HMACSHA384,HMACSHA512;
+        Timestamp: Text;
+        Signature: Text;
+    begin
+        NRSSetup.GetRecordOnce();
+        ClientSecret := NRSSetup.GetClientSecret();
+        Timestamp := GetUtcTimestamp();
+        Signature := Crypto.GenerateHashAsBase64String(RawBody + Timestamp, ClientSecret, HmacAlg::HMACSHA256);
+        HttpStatusCode := 0;
+        ResponseText := '';
+        exit(TrySend(HttpMethod, FullUrl, NRSSetup."API Key", Signature, Timestamp, RawBody, HttpStatusCode, ResponseText));
+    end;
+
+    /// <summary>Derives the /si base (System Integrator endpoints) from the configured /app/invoice Base URL.</summary>
+    procedure SiBaseUrl(): Text
+    var
+        NRSSetup: Record "NRS Setup";
+        BaseUrl: Text;
+    begin
+        NRSSetup.GetRecordOnce();
+        BaseUrl := NRSSetup."Base URL";
+        if BaseUrl.EndsWith('/') then
+            BaseUrl := CopyStr(BaseUrl, 1, StrLen(BaseUrl) - 1);
+        if BaseUrl.Contains('/app/invoice') then
+            exit(BaseUrl.Replace('/app/invoice', '/si'));
+        if BaseUrl.Contains('/app') then
+            exit(BaseUrl.Replace('/app', '/si'));
+        exit(BaseUrl);
+    end;
+
     // ----------------------------------------------------------------------------------
     // Update payment status (PATCH .../invoice/update/{irn})
     // ----------------------------------------------------------------------------------
@@ -519,6 +559,99 @@ codeunit 50180 "NRS E-Invoice Mgt."
         exit(CopyStr(ResponseText, 1, 250));
     end;
 
+    // ----------------------------------------------------------------------------------
+    // Confirm invoice (GET .../app/invoice/confirm/{irn}) - seller-side status check
+    // ----------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Confirms the NRS-side status of an invoice we issued (transmitted / delivered / payment).
+    /// Updates the invoice's log entry. Returns true on success.
+    /// </summary>
+    procedure ConfirmInvoice(IRNToConfirm: Text): Boolean
+    var
+        IRNLog: Record "NRS IRN Log";
+        ResponseText: Text;
+        HttpStatusCode: Integer;
+        Sent: Boolean;
+        Json: JsonObject;
+        DataTok: JsonToken;
+        DataObj: JsonObject;
+        Transmitted: Boolean;
+        Delivered: Boolean;
+        SyncDate: Date;
+        PayStatus: Text;
+    begin
+        if IRNToConfirm = '' then
+            Error(NoIRNForConfirmTxt);
+
+        Sent := SendSignedMethod('GET', ConfirmPathTok + IRNToConfirm, '', HttpStatusCode, ResponseText);
+        if not Sent then
+            Error(ConnErrTxt);
+        if not ((HttpStatusCode = 200) or (HttpStatusCode = 201)) then
+            Error(ConfirmFailTxt, HttpStatusCode, ExtractMessage(ResponseText));
+
+        if Json.ReadFrom(ResponseText) then
+            if Json.Get('data', DataTok) then
+                if DataTok.IsObject() then begin
+                    DataObj := DataTok.AsObject();
+                    Transmitted := JsonBool(DataObj, 'transmitted');
+                    Delivered := JsonBool(DataObj, 'delivered');
+                    SyncDate := JsonDate(DataObj, 'sync_date');
+                    PayStatus := JsonText(DataObj, 'payment_status');
+                end;
+
+        IRNLog.Reset();
+        IRNLog.SetRange(IRN, IRNToConfirm);
+        if IRNLog.FindFirst() then begin
+            IRNLog."Transmitted" := Transmitted;
+            IRNLog."Delivered" := Delivered;
+            IRNLog."Sync Date" := SyncDate;
+            if PayStatus <> '' then
+                IRNLog."Payment Status" := CopyStr(PayStatus, 1, MaxStrLen(IRNLog."Payment Status"));
+            IRNLog."Confirmed At" := CurrentDateTime();
+            IRNLog."HTTP Status Code" := HttpStatusCode;
+            IRNLog.Modify(true);
+        end;
+
+        Message(ConfirmOkTxt, IRNToConfirm, Format(Transmitted), Format(Delivered), PayStatus, Format(SyncDate));
+        exit(true);
+    end;
+
+    local procedure JsonText(Obj: JsonObject; KeyName: Text): Text
+    var
+        Tok: JsonToken;
+    begin
+        if Obj.Get(KeyName, Tok) then
+            if Tok.IsValue() and (not Tok.AsValue().IsNull()) then
+                exit(Tok.AsValue().AsText());
+        exit('');
+    end;
+
+    local procedure JsonBool(Obj: JsonObject; KeyName: Text): Boolean
+    var
+        Tok: JsonToken;
+    begin
+        if Obj.Get(KeyName, Tok) then
+            if Tok.IsValue() and (not Tok.AsValue().IsNull()) then
+                exit(Tok.AsValue().AsBoolean());
+        exit(false);
+    end;
+
+    local procedure JsonDate(Obj: JsonObject; KeyName: Text): Date
+    var
+        Tok: JsonToken;
+        Result: Date;
+        AsTxt: Text;
+    begin
+        if Obj.Get(KeyName, Tok) then
+            if Tok.IsValue() and (not Tok.AsValue().IsNull()) then begin
+                AsTxt := Tok.AsValue().AsText();
+                if (AsTxt <> '') and Evaluate(Result, AsTxt, 9) then
+                    exit(Result);
+            end;
+        exit(0D);
+    end;
+
     local procedure SendGenerateIRN(NRSSetup: Record "NRS Setup"; ClientSecret: SecretText; InvoiceNumber: Text; IssuanceDate: Text; var HttpStatusCode: Integer; var ResponseText: Text): Boolean
     var
         Crypto: Codeunit "Cryptography Management";
@@ -558,13 +691,16 @@ codeunit 50180 "NRS E-Invoice Mgt."
         ContentHeaders: HttpHeaders;
         RequestHeaders: HttpHeaders;
     begin
-        Content.WriteFrom(RawBody);
-        Content.GetHeaders(ContentHeaders);
-        if ContentHeaders.Contains('Content-Type') then
-            ContentHeaders.Remove('Content-Type');
-        ContentHeaders.Add('Content-Type', 'application/json');
+        // Only attach a body for methods that carry one; a GET with content makes HttpClient throw.
+        if UpperCase(HttpMethod) in ['POST', 'PATCH', 'PUT'] then begin
+            Content.WriteFrom(RawBody);
+            Content.GetHeaders(ContentHeaders);
+            if ContentHeaders.Contains('Content-Type') then
+                ContentHeaders.Remove('Content-Type');
+            ContentHeaders.Add('Content-Type', 'application/json');
+            RequestMsg.Content := Content;
+        end;
 
-        RequestMsg.Content := Content;
         RequestMsg.Method := HttpMethod;
         RequestMsg.SetRequestUri(EndpointUrl);
         RequestMsg.GetHeaders(RequestHeaders);

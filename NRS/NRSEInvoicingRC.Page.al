@@ -42,6 +42,14 @@ page 50384 "NRS E-Invoicing RC"
                 RunObject = page "NRS E-Invoices";
                 Image = Invoice;
             }
+            action(ReceivedInvoices)
+            {
+                ApplicationArea = All;
+                Caption = 'NRS Received Invoices';
+                ToolTip = 'Pull and view invoices suppliers have signed and transmitted to you (buyer side).';
+                RunObject = page "NRS Received Invoices";
+                Image = Documents;
+            }
             action(IRNLog)
             {
                 ApplicationArea = All;

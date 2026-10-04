@@ -28,17 +28,17 @@ codeunit 50181 "NRS Validate Invoice Mgt."
 
     var
         // The 'sign' endpoint validates the content, signs and reports the invoice to NRS.
-        // (The 'validate' endpoint only checks compliance and uses a different schema - lga/state
-        // and tax_scheme - which 'sign' does not.)
+        // Per the official /sign spec the payload includes postal_address lga/state and a
+        // tax_scheme { "id": "VAT" } inside each tax_category - both are sent below.
         ValidatePathTok: Label 'sign', Locked = true;
         ZeroVatTok: Label 'ZERO_VAT', Locked = true;
         ConnErrTxt: Label 'Could not reach the NRS e-invoicing service. Check network access / firewall.';
         NothingSelectedTxt: Label 'No invoices were selected.';
         NoIRNTxt: Label 'Invoice %1 has no IRN yet. Generate the IRN before validating.', Comment = '%1 = invoice no.';
         ConfirmBatchTxt: Label 'Validate %1 selected invoice(s) with NRS?', Comment = '%1 = count';
-        SummaryTxt: Label 'Validation complete.\n\nProcessed: %1\nValidated: %2\nFailed: %3', Comment = '%1..%3 counts';
+        SummaryTxt: Label 'Validation complete.\\Processed: %1\Validated: %2\Failed: %3', Comment = '%1..%3 counts';
         ConfirmGVTxt: Label 'Generate IRN and validate %1 selected invoice(s)?', Comment = '%1 = count';
-        GVSummaryTxt: Label 'Generate + Validate complete.\n\nProcessed: %1\nIRN generated: %2\nValidated: %3\nFailed: %4', Comment = '%1..%4 counts';
+        GVSummaryTxt: Label 'Generate + Validate complete.\\Processed: %1\IRN generated: %2\Validated: %3\Failed: %4', Comment = '%1..%4 counts';
 
     /// <summary>Batch validation from the Posted Sales Invoices list.</summary>
     procedure ValidateForSelected(var SalesInvHeader: Record "Sales Invoice Header")
@@ -386,7 +386,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         // ---- Customer party (required for B2B/B2G/G2B) ----
         // The posted invoice's bill-to address is frozen at posting time; where a field was blank
         // then, fall back to the customer master so filling the Customer card fixes past invoices too.
-        BuildParty(CustomerParty, SalesInvHeader."Bill-to Name", Customer."VAT Registration No.", Customer."E-Mail",
+        BuildParty(CustomerParty, SalesInvHeader."Bill-to Name", BuyerTin(InvoiceKind, Customer."VAT Registration No."), Customer."E-Mail",
             Customer."Phone No.", Customer."NRS Business Desc.",
             CustAddrValue(SalesInvHeader."Bill-to Address", Customer.Address),
             CustAddrValue(SalesInvHeader."Bill-to City", Customer.City),
@@ -456,7 +456,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
         Body.Add('accounting_supplier_party', SupplierParty);
 
-        BuildParty(CustomerParty, CrMemoHeader."Bill-to Name", Customer."VAT Registration No.", Customer."E-Mail",
+        BuildParty(CustomerParty, CrMemoHeader."Bill-to Name", BuyerTin(InvoiceKind, Customer."VAT Registration No."), Customer."E-Mail",
             Customer."Phone No.", Customer."NRS Business Desc.",
             CustAddrValue(CrMemoHeader."Bill-to Address", Customer.Address),
             CustAddrValue(CrMemoHeader."Bill-to City", Customer.City),
@@ -513,14 +513,33 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         Body.Add('billing_reference', RefArr);
     end;
 
+    /// <summary>
+    /// Returns the buyer TIN to send, based on the invoice kind the user picked on the customer.
+    /// For B2C the TIN is always omitted - even if a VAT Registration No. was entered by mistake -
+    /// because NRS treats the customer party (and its tin) as optional for B2C. For B2B/B2G/G2B the
+    /// customer's VAT Registration No. is used (and NRS will reject it if that is blank, as it should).
+    /// </summary>
+    local procedure BuyerTin(InvoiceKind: Text; VatRegNo: Text): Text
+    begin
+        if UpperCase(InvoiceKind) = 'B2C' then
+            exit('');
+        exit(VatRegNo);
+    end;
+
     local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; Lga: Text; State: Text; PostalZone: Text; Country: Text)
     var
         Addr: JsonObject;
     begin
         Clear(PartyObj);
         PartyObj.Add('party_name', Name);
-        PartyObj.Add('tin', Tin);
-        PartyObj.Add('email', Email);
+        // tin is required for B2B/B2G but OPTIONAL for B2C. NRS length-checks a tin that is present
+        // (minimum 5 characters), so sending an empty "" is rejected ("tin must be at least ... 5").
+        // Only emit tin/email when they actually have a value; a B2C consumer with no VAT reg then
+        // goes out with name + address and no tin, which NRS accepts.
+        if Tin <> '' then
+            PartyObj.Add('tin', Tin);
+        if Email <> '' then
+            PartyObj.Add('email', Email);
         if Telephone <> '' then
             PartyObj.Add('telephone', Telephone);
         if Description <> '' then
@@ -548,6 +567,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         TotalObj: JsonObject;
         SubtotalObj: JsonObject;
         CategoryObj: JsonObject;
+        TaxSchemeObj: JsonObject;
         SubtotalArr: JsonArray;
         TaxableByRate: Dictionary of [Decimal, Decimal];
         VatByRate: Dictionary of [Decimal, Decimal];
@@ -592,6 +612,11 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             Clear(CategoryObj);
             CategoryObj.Add('id', CategoryId);
             CategoryObj.Add('percent', Rate);
+            // tax_scheme classifies the KIND of tax (VAT). It stays 'VAT' for every category -
+            // standard-rated and zero-rated alike - only the category id and percent change.
+            Clear(TaxSchemeObj);
+            TaxSchemeObj.Add('id', 'VAT');
+            CategoryObj.Add('tax_scheme', TaxSchemeObj);
 
             Clear(SubtotalObj);
             SubtotalObj.Add('taxable_amount', Taxable);

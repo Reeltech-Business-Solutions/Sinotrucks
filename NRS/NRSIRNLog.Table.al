@@ -111,6 +111,23 @@ table 50181 "NRS IRN Log"
         {
             Caption = 'Payment Updated At';
         }
+        // ---- Confirm Invoice (NRS-side status of an invoice we issued) ----
+        field(36; "Transmitted"; Boolean)
+        {
+            Caption = 'Transmitted';
+        }
+        field(37; "Delivered"; Boolean)
+        {
+            Caption = 'Delivered';
+        }
+        field(38; "Sync Date"; Date)
+        {
+            Caption = 'Sync Date';
+        }
+        field(39; "Confirmed At"; DateTime)
+        {
+            Caption = 'Confirmed At';
+        }
     }
 
     keys

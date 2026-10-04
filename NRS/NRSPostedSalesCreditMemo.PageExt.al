@@ -37,6 +37,40 @@ pageextension 50184 "NRS Posted Sales Cr.Memo" extends "Posted Sales Credit Memo
     {
         addlast(processing)
         {
+            action(NRSDownloadRequestCM)
+            {
+                ApplicationArea = All;
+                Caption = 'Download Request JSON';
+                ToolTip = 'Downloads the exact JSON last sent to NRS for this credit memo (for troubleshooting).';
+                Image = Export;
+
+                trigger OnAction()
+                var
+                    IRNLog: Record "NRS IRN Log";
+                    TempBlob: Codeunit "Temp Blob";
+                    OutStr: OutStream;
+                    InStr: InStream;
+                    BodyText: Text;
+                    FileName: Text;
+                begin
+                    IRNLog.SetRange("Source Table No.", Database::"Sales Cr.Memo Header");
+                    IRNLog.SetRange("Document No.", Rec."No.");
+                    if not IRNLog.FindFirst() then begin
+                        Message('No NRS request has been captured for this credit memo yet. Sign it first.');
+                        exit;
+                    end;
+                    BodyText := IRNLog.GetRequestBody();
+                    if BodyText = '' then begin
+                        Message('No request body captured yet. Sign this credit note first, then try again.');
+                        exit;
+                    end;
+                    TempBlob.CreateOutStream(OutStr, TextEncoding::UTF8);
+                    OutStr.Write(BodyText);
+                    TempBlob.CreateInStream(InStr, TextEncoding::UTF8);
+                    FileName := 'NRS-Request-CM-' + Rec."No." + '.json';
+                    DownloadFromStream(InStr, '', '', '', FileName);
+                end;
+            }
             action(NRSSetOriginalCM)
             {
                 ApplicationArea = All;

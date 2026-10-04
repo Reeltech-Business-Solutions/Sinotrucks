@@ -178,6 +178,28 @@ pageextension 50181 "NRS Posted Sales Invoice" extends "Posted Sales Invoice"
                         Message(FailTxt);
                 end;
             }
+            action(NRSConfirmStatusCard)
+            {
+                ApplicationArea = All;
+                Caption = 'Confirm NRS Status';
+                ToolTip = 'Pulls this invoice''s current status from NRS (transmitted, delivered, payment status).';
+                Image = Approve;
+                Promoted = true;
+                PromotedCategory = Process;
+                PromotedOnly = true;
+
+                trigger OnAction()
+                var
+                    EInvoiceMgt: Codeunit "NRS E-Invoice Mgt.";
+                begin
+                    if Rec."NRS IRN" = '' then begin
+                        Message('This invoice has no IRN yet. Generate and sign it first.');
+                        exit;
+                    end;
+                    EInvoiceMgt.ConfirmInvoice(Rec."NRS IRN");
+                    CurrPage.Update(false);
+                end;
+            }
             action(NRSViewLogCard)
             {
                 ApplicationArea = All;

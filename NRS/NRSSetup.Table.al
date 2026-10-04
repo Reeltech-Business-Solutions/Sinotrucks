@@ -127,6 +127,8 @@ table 50180 "NRS Setup"
         {
             Caption = 'Default Invoice Type Code';
             DataClassification = CustomerContent;
+            // NRS code 381 = Commercial Invoice (the normal sales invoice).
+            InitValue = '381';
         }
         field(43; "Def. Payment Status"; Text[10])
         {
@@ -187,18 +189,19 @@ table 50180 "NRS Setup"
             Caption = 'Default Resource Product Category';
             DataClassification = CustomerContent;
         }
-        // ---- Invoice type codes for credit/debit notes (NRS Resources 1.6.1) ----
+        // ---- Invoice type codes (per the NRS invoice_type_code list) ----
+        // NRS codes: 381 = Commercial Invoice, 380 = Credit Note, 384 = Debit Note.
         field(54; "Def. Credit Note Type Code"; Text[10])
         {
             Caption = 'Default Credit Note Type Code';
             DataClassification = CustomerContent;
-            InitValue = '381';
+            InitValue = '380';
         }
         field(55; "Def. Debit Note Type Code"; Text[10])
         {
             Caption = 'Default Debit Note Type Code';
             DataClassification = CustomerContent;
-            InitValue = '383';
+            InitValue = '384';
         }
     }
 

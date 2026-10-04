@@ -153,7 +153,7 @@ page 50380 "NRS Setup"
                 field("Def. Invoice Type Code"; Rec."Def. Invoice Type Code")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the default invoice_type_code (see NRS Resources 1.6.1, e.g. 396).';
+                    ToolTip = 'Specifies the invoice_type_code for a normal sales invoice. NRS code 381 = Commercial Invoice.';
                 }
                 field("Def. Payment Status"; Rec."Def. Payment Status")
                 {
@@ -218,12 +218,12 @@ page 50380 "NRS Setup"
                 field("Def. Credit Note Type Code"; Rec."Def. Credit Note Type Code")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the invoice_type_code sent for credit notes (NRS default 381).';
+                    ToolTip = 'Specifies the invoice_type_code sent for credit notes. NRS code 380 = Credit Note.';
                 }
                 field("Def. Debit Note Type Code"; Rec."Def. Debit Note Type Code")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the invoice_type_code sent for debit notes (NRS default 383).';
+                    ToolTip = 'Specifies the invoice_type_code sent for debit notes. NRS code 384 = Debit Note.';
                 }
             }
         }
