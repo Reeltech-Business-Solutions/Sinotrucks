@@ -232,6 +232,7 @@ page 50387 "NRS E-Invoice Card"
                 Promoted = true;
                 PromotedCategory = Process;
                 PromotedOnly = true;
+                visible = showPaymentStatus;
 
                 trigger OnAction()
                 var
@@ -284,6 +285,7 @@ page 50387 "NRS E-Invoice Card"
                 Promoted = true;
                 PromotedCategory = Process;
                 PromotedOnly = true;
+                visible = false;
 
                 trigger OnAction()
                 var
@@ -316,10 +318,35 @@ page 50387 "NRS E-Invoice Card"
         DueDate: Date;
         TotalAmount: Decimal;
         TotalInclVAT: Decimal;
+        showPaymentStatus: Boolean;
 
+    // trigger OnAfterGetRecord()
+    // var
+    //     SalesInvHeader: Record "Sales Invoice Header";
+    // begin
+    //     Clear(CustomerName);
+    //     Clear(SellToCustNo);
+    //     Clear(CurrencyCode);
+    //     Clear(PostingDate);
+    //     Clear(DueDate);
+    //     Clear(TotalAmount);
+    //     Clear(TotalInclVAT);
+    //     if Rec."Source Table No." <> Database::"Sales Invoice Header" then
+    //         exit;
+    //     if not SalesInvHeader.Get(Rec."Document No.") then
+    //         exit;
+    //     CustomerName := CopyStr(SalesInvHeader."Bill-to Name", 1, MaxStrLen(CustomerName));
+    //     SellToCustNo := SalesInvHeader."Bill-to Customer No.";
+    //     CurrencyCode := SalesInvHeader."Currency Code";
+    //     PostingDate := SalesInvHeader."Posting Date";
+    //     DueDate := SalesInvHeader."Due Date";
+    //     TotalAmount := SalesInvHeader.Amount;
+    //     TotalInclVAT := SalesInvHeader."Amount Including VAT";
+    // end;
     trigger OnAfterGetRecord()
     var
         SalesInvHeader: Record "Sales Invoice Header";
+        CrMemoHeader: Record "Sales Cr.Memo Header";
     begin
         Clear(CustomerName);
         Clear(SellToCustNo);
@@ -328,16 +355,36 @@ page 50387 "NRS E-Invoice Card"
         Clear(DueDate);
         Clear(TotalAmount);
         Clear(TotalInclVAT);
-        if Rec."Source Table No." <> Database::"Sales Invoice Header" then
-            exit;
-        if not SalesInvHeader.Get(Rec."Document No.") then
-            exit;
-        CustomerName := CopyStr(SalesInvHeader."Bill-to Name", 1, MaxStrLen(CustomerName));
-        SellToCustNo := SalesInvHeader."Bill-to Customer No.";
-        CurrencyCode := SalesInvHeader."Currency Code";
-        PostingDate := SalesInvHeader."Posting Date";
-        DueDate := SalesInvHeader."Due Date";
-        TotalAmount := SalesInvHeader.Amount;
-        TotalInclVAT := SalesInvHeader."Amount Including VAT";
+
+        case Rec."Source Table No." of
+            Database::"Sales Invoice Header":
+                if SalesInvHeader.Get(Rec."Document No.") then begin
+                    CustomerName := CopyStr(SalesInvHeader."Bill-to Name", 1, MaxStrLen(CustomerName));
+                    SellToCustNo := SalesInvHeader."Bill-to Customer No.";
+                    CurrencyCode := SalesInvHeader."Currency Code";
+                    PostingDate := SalesInvHeader."Posting Date";
+                    DueDate := SalesInvHeader."Due Date";
+                    TotalAmount := SalesInvHeader.Amount;
+                    TotalInclVAT := SalesInvHeader."Amount Including VAT";
+                end;
+            Database::"Sales Cr.Memo Header":
+                if CrMemoHeader.Get(Rec."Document No.") then begin
+                    CustomerName := CopyStr(CrMemoHeader."Bill-to Name", 1, MaxStrLen(CustomerName));
+                    SellToCustNo := CrMemoHeader."Bill-to Customer No.";
+                    CurrencyCode := CrMemoHeader."Currency Code";
+                    PostingDate := CrMemoHeader."Posting Date";
+                    DueDate := CrMemoHeader."Due Date";
+                    TotalAmount := CrMemoHeader.Amount;
+                    TotalInclVAT := CrMemoHeader."Amount Including VAT";
+                end;
+        end;
+    end;
+
+    trigger OnOpenPage()
+    begin
+        if Rec."Payment Status" <> 'PAID' then
+            showPaymentStatus := true
+        else
+            showPaymentStatus := false;
     end;
 }

@@ -1225,7 +1225,8 @@ page 80032 "Job Card - Internal"
                                 Error('You are no permitted to Perform this action,please contact your system administrator')
                             Else
                                 if Confirm('Do you want to ReOpen Job?') then begin
-                                    Rec.Validate(rec.Status, Rec.Status::Open);
+                                    // Rec.Validate(rec.Status, Rec.Status::Open);
+                                    Rec.Status := Rec.Status::Open;
                                     Rec.Modify();
                                 end;
                         end;

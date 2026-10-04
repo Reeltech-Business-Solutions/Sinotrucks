@@ -43,6 +43,12 @@ page 50386 "NRS E-Invoices"
                     ApplicationArea = All;
                     ToolTip = 'Specifies the validation status. You can override it here.';
                 }
+
+                field(payment_status; Rec."Payment Status")
+                {
+                    ApplicationArea = All;
+                    ToolTip = 'Specifies the payment status. You can override it here.';
+                }
                 field("Posting Date"; Rec."Posting Date")
                 {
                     ApplicationArea = All;
@@ -96,7 +102,7 @@ page 50386 "NRS E-Invoices"
                 Promoted = true;
                 PromotedCategory = Process;
                 PromotedOnly = true;
-
+                visible = false;
                 trigger OnAction()
                 var
                     SalesInvHeader: Record "Sales Invoice Header";
