@@ -130,6 +130,13 @@ table 50180 "NRS Setup"
             // NRS code 381 = Commercial Invoice (the normal sales invoice).
             InitValue = '381';
         }
+        field(42; "Def. Consumer TIN"; Text[50])
+        {
+            Caption = 'Default Consumer TIN';
+            DataClassification = CustomerContent;
+            // Not currently used: B2C invoices omit the whole accounting_customer_party block, so no
+            // buyer TIN is sent for them. Kept for forward compatibility if NRS later requires one.
+        }
         field(43; "Def. Payment Status"; Text[10])
         {
             Caption = 'Default Payment Status';

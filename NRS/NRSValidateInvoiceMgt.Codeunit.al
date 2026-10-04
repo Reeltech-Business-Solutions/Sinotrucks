@@ -383,17 +383,22 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
         Body.Add('accounting_supplier_party', SupplierParty);
 
-        // ---- Customer party (required for B2B/B2G/G2B) ----
-        // The posted invoice's bill-to address is frozen at posting time; where a field was blank
-        // then, fall back to the customer master so filling the Customer card fixes past invoices too.
-        BuildParty(CustomerParty, SalesInvHeader."Bill-to Name", BuyerTin(InvoiceKind, Customer."VAT Registration No."), Customer."E-Mail",
-            Customer."Phone No.", Customer."NRS Business Desc.",
-            CustAddrValue(SalesInvHeader."Bill-to Address", Customer.Address),
-            CustAddrValue(SalesInvHeader."Bill-to City", Customer.City),
-            Customer."NRS LGA Code", Customer."NRS State Code",
-            CustAddrValue(SalesInvHeader."Bill-to Post Code", Customer."Post Code"),
-            GetCountryCode(SalesInvHeader."Bill-to Country/Region Code", Customer."Country/Region Code"));
-        Body.Add('accounting_customer_party', CustomerParty);
+        // ---- Customer party ----
+        // The NRS /sign validator requires the customer TIN even for B2C. For B2C the add-on sends
+        // the configured Default Consumer TIN (never the customer's own, so a mis-entry can't leak in);
+        // if no Default Consumer TIN is set, the whole customer party is omitted. For B2B/B2G/G2B the
+        // customer's VAT Registration No. is used. The posted bill-to address falls back to the
+        // customer master so filling the Customer card fixes past invoices too.
+        if IncludeCustomerParty(InvoiceKind) then begin
+            BuildParty(CustomerParty, SalesInvHeader."Bill-to Name", BuyerTin(InvoiceKind, Customer."VAT Registration No.", NRSSetup."Def. Consumer TIN"), Customer."E-Mail",
+                Customer."Phone No.", Customer."NRS Business Desc.",
+                CustAddrValue(SalesInvHeader."Bill-to Address", Customer.Address),
+                CustAddrValue(SalesInvHeader."Bill-to City", Customer.City),
+                Customer."NRS LGA Code", Customer."NRS State Code",
+                CustAddrValue(SalesInvHeader."Bill-to Post Code", Customer."Post Code"),
+                GetCountryCode(SalesInvHeader."Bill-to Country/Region Code", Customer."Country/Region Code"));
+            Body.Add('accounting_customer_party', CustomerParty);
+        end;
 
         // ---- Lines (into a buffer), tax total and monetary total (all reconcile) ----
         FillBufferFromInvoice(SalesInvHeader."No.", LineBuf);
@@ -456,14 +461,16 @@ codeunit 50181 "NRS Validate Invoice Mgt."
             NRSSetup."Supplier Postal Zone", NRSSetup."Supplier Country");
         Body.Add('accounting_supplier_party', SupplierParty);
 
-        BuildParty(CustomerParty, CrMemoHeader."Bill-to Name", BuyerTin(InvoiceKind, Customer."VAT Registration No."), Customer."E-Mail",
-            Customer."Phone No.", Customer."NRS Business Desc.",
-            CustAddrValue(CrMemoHeader."Bill-to Address", Customer.Address),
-            CustAddrValue(CrMemoHeader."Bill-to City", Customer.City),
-            Customer."NRS LGA Code", Customer."NRS State Code",
-            CustAddrValue(CrMemoHeader."Bill-to Post Code", Customer."Post Code"),
-            GetCountryCode(CrMemoHeader."Bill-to Country/Region Code", Customer."Country/Region Code"));
-        Body.Add('accounting_customer_party', CustomerParty);
+        if IncludeCustomerParty(InvoiceKind) then begin
+            BuildParty(CustomerParty, CrMemoHeader."Bill-to Name", BuyerTin(InvoiceKind, Customer."VAT Registration No.", NRSSetup."Def. Consumer TIN"), Customer."E-Mail",
+                Customer."Phone No.", Customer."NRS Business Desc.",
+                CustAddrValue(CrMemoHeader."Bill-to Address", Customer.Address),
+                CustAddrValue(CrMemoHeader."Bill-to City", Customer.City),
+                Customer."NRS LGA Code", Customer."NRS State Code",
+                CustAddrValue(CrMemoHeader."Bill-to Post Code", Customer."Post Code"),
+                GetCountryCode(CrMemoHeader."Bill-to Country/Region Code", Customer."Country/Region Code"));
+            Body.Add('accounting_customer_party', CustomerParty);
+        end;
 
         FillBufferFromCreditMemo(CrMemoHeader."No.", LineBuf);
         BuildTaxTotalFromLines(LineBuf, NRSSetup, TaxTotalArr, TaxExclusive, TotalVat);
@@ -515,15 +522,27 @@ codeunit 50181 "NRS Validate Invoice Mgt."
 
     /// <summary>
     /// Returns the buyer TIN to send, based on the invoice kind the user picked on the customer.
-    /// For B2C the TIN is always omitted - even if a VAT Registration No. was entered by mistake -
-    /// because NRS treats the customer party (and its tin) as optional for B2C. For B2B/B2G/G2B the
-    /// customer's VAT Registration No. is used (and NRS will reject it if that is blank, as it should).
+    /// For B2C the configured Default Consumer TIN is used - never the customer's own VAT Registration
+    /// No. (clients sometimes enter one by mistake). For B2B/B2G/G2B the customer's VAT Registration
+    /// No. is used (and NRS will reject it if that is blank, as it should).
     /// </summary>
-    local procedure BuyerTin(InvoiceKind: Text; VatRegNo: Text): Text
+    local procedure BuyerTin(InvoiceKind: Text; VatRegNo: Text; DefaultConsumerTin: Text): Text
     begin
         if UpperCase(InvoiceKind) = 'B2C' then
-            exit('');
+            exit(DefaultConsumerTin);
         exit(VatRegNo);
+    end;
+
+    /// <summary>
+    /// Whether to send the accounting_customer_party block at all. For B2C the whole block is omitted
+    /// (NRS treats the customer party as optional for B2C, and a consumer has no TIN to send). For
+    /// B2B/B2G/G2B the block is always included.
+    /// </summary>
+    local procedure IncludeCustomerParty(InvoiceKind: Text): Boolean
+    begin
+        if UpperCase(InvoiceKind) = 'B2C' then
+            exit(false);
+        exit(true);
     end;
 
     local procedure BuildParty(var PartyObj: JsonObject; Name: Text; Tin: Text; Email: Text; Telephone: Text; Description: Text; Street: Text; City: Text; Lga: Text; State: Text; PostalZone: Text; Country: Text)
