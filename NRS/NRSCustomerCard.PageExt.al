@@ -11,7 +11,7 @@ pageextension 50182 "NRS Customer Card" extends "Customer Card"
                 field("NRS Invoice Kind"; Rec."NRS Invoice Kind")
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Specifies the invoice kind for this customer (B2B, B2C, B2G, G2B). Blank falls back to B2B.';
+                    ToolTip = 'Specifies the invoice kind for this customer (B2B, B2C, B2G, G2B). Blank falls back to B2C (consumer). Set B2B/B2G/G2B for business or government customers so their TIN is sent.';
                 }
                 field("NRS Business Desc."; Rec."NRS Business Desc.")
                 {
