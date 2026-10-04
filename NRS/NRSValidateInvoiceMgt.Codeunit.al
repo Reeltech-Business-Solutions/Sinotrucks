@@ -351,12 +351,12 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if CurrencyCode = '' then
             CurrencyCode := NRSSetup."Def. Document Currency";
 
-        // invoice_kind is taken from the customer card (NRS Invoice Kind). Falls back to B2B
-        // only if a customer has not been tagged.
+        // invoice_kind is taken from the customer card (NRS Invoice Kind). Falls back to B2C
+        // (consumer) when a customer has not been tagged.
         if Customer.Get(SalesInvHeader."Bill-to Customer No.") then;
         InvoiceKind := DelChr(Format(Customer."NRS Invoice Kind"), '=', ' ');
         if InvoiceKind = '' then
-            InvoiceKind := 'B2B';
+            InvoiceKind := 'B2C';
 
         // ---- Header scalars ----
         Body.Add('business_id', NRSSetup."Business ID");
@@ -438,7 +438,7 @@ codeunit 50181 "NRS Validate Invoice Mgt."
         if Customer.Get(CrMemoHeader."Bill-to Customer No.") then;
         InvoiceKind := DelChr(Format(Customer."NRS Invoice Kind"), '=', ' ');
         if InvoiceKind = '' then
-            InvoiceKind := 'B2B';
+            InvoiceKind := 'B2C';
 
         Body.Add('business_id', NRSSetup."Business ID");
         Body.Add('irn', CrMemoHeader."NRS IRN");
