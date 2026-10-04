@@ -21,6 +21,14 @@ page 50386 "NRS E-Invoices"
                     Editable = false;
                     ToolTip = 'Specifies the posted sales invoice number.';
                 }
+                field("Document Type"; DocTypeText)
+                {
+                    Caption = 'Document Type';
+                    ApplicationArea = All;
+                    Editable = false;
+                    ToolTip = 'Specifies whether this entry is an Invoice, a Debit Note, or a Credit Memo.';
+                    StyleExpr = DocTypeStyle;
+                }
                 field("Job No."; JobNo)
                 {
                     Caption = 'Job No.';
@@ -245,6 +253,8 @@ page 50386 "NRS E-Invoices"
 
     var
         StatusStyle: Text;
+        DocTypeStyle: Text;
+        DocTypeText: Text[20];
         JobNo: Code[20];
         CustomerNo: Code[20];
         CustomerName: Text[100];
@@ -274,6 +284,8 @@ page 50386 "NRS E-Invoices"
         Clear(JobNo);
         Clear(CustomerNo);
         Clear(CustomerName);
+        DocTypeText := '';
+        DocTypeStyle := 'Standard';
 
         case Rec."Source Table No." of
             Database::"Sales Invoice Header":
@@ -281,12 +293,20 @@ page 50386 "NRS E-Invoices"
                     CustomerNo := SalesInvHeader."Sell-to Customer No.";
                     CustomerName := CopyStr(SalesInvHeader."Sell-to Customer Name", 1, MaxStrLen(CustomerName));
                     JobNo := SalesInvHeader."Job No.";
+                    // A posted invoice is either a normal Invoice or (if tagged) a Debit Note.
+                    if SalesInvHeader."NRS Document Type" = SalesInvHeader."NRS Document Type"::"Debit Note" then begin
+                        DocTypeText := 'Debit Note';
+                        DocTypeStyle := 'Attention';
+                    end else
+                        DocTypeText := 'Invoice';
                 end;
             Database::"Sales Cr.Memo Header":
                 if CrMemoHeader.Get(Rec."Document No.") then begin
                     CustomerNo := CrMemoHeader."Sell-to Customer No.";
                     CustomerName := CopyStr(CrMemoHeader."Sell-to Customer Name", 1, MaxStrLen(CustomerName));
                     JobNo := CrMemoHeader."Job No.";
+                    DocTypeText := 'Credit Memo';
+                    DocTypeStyle := 'Unfavorable';
                 end;
         end;
     end;
