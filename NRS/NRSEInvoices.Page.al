@@ -248,6 +248,35 @@ page 50386 "NRS E-Invoices"
                     CurrPage.Update(false);
                 end;
             }
+            action(CreateCorrectiveCreditMemo)
+            {
+                ApplicationArea = All;
+                Caption = 'Create Corrective Credit Memo';
+                ToolTip = 'Creates a corrective credit memo for the selected posted sales invoice (standard Business Central correction) and opens it so you can adjust and post it.';
+                Image = CreateCreditMemo;
+                Promoted = true;
+                PromotedCategory = Process;
+                PromotedOnly = true;
+
+                trigger OnAction()
+                var
+                    SalesInvHeader: Record "Sales Invoice Header";
+                    SalesHeader: Record "Sales Header";
+                    CorrectPostedSalesInvoice: Codeunit "Correct Posted Sales Invoice";
+                    NotInvoiceTxt: Label 'A corrective credit memo can only be created from a posted sales invoice.';
+                begin
+                    if Rec."Source Table No." <> Database::"Sales Invoice Header" then begin
+                        Message(NotInvoiceTxt);
+                        exit;
+                    end;
+                    if not SalesInvHeader.Get(Rec."Document No.") then
+                        exit;
+                    // Uses the standard BC engine; it runs its own checks and errors if the invoice
+                    // cannot be corrected. On success it opens the new (unposted) credit memo.
+                    if CorrectPostedSalesInvoice.CreateCreditMemoCopyDocument(SalesInvHeader, SalesHeader) then
+                        Page.Run(Page::"Sales Credit Memo", SalesHeader);
+                end;
+            }
         }
     }
 
